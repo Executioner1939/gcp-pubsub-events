@@ -83,8 +83,8 @@ class TestResourceAutoCreation:
         # Create client with auto-creation disabled
         client = create_pubsub_app("test-project", auto_create_resources=False)
         
-        # This should fail because resources don't exist
-        with pytest.raises(Exception):
+        # This should fail because resources don't exist and auto-creation is disabled
+        with pytest.raises(ValueError, match="does not exist and auto_create_resources is disabled"):
             client.start_listening(timeout=1)
     
     @pytest.mark.asyncio

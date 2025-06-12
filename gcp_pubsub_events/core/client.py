@@ -96,15 +96,23 @@ class PubSubClient:
             return
         
         # Ensure all resources exist before starting to listen
-        if self.auto_create_resources:
-            try:
+        try:
+            if self.auto_create_resources:
                 logger.info("Ensuring topics and subscriptions exist...")
                 subscription_paths = self.resource_manager.ensure_resources_for_subscriptions(subscriptions)
                 logger.info(f"Successfully verified {len(subscription_paths)} subscription(s)")
-            except Exception as e:
-                logger.error(f"Failed to ensure resources exist: {e}")
-                self.running = False
-                raise
+            else:
+                logger.info("Verifying topics and subscriptions exist (auto-creation disabled)...")
+                # When auto-creation is disabled, we still need to verify resources exist
+                for subscription_name in subscriptions.keys():
+                    subscription_path = self.subscriber.subscription_path(self.project_id, subscription_name)
+                    if not self.resource_manager._subscription_exists(subscription_path):
+                        raise ValueError(f"Subscription '{subscription_name}' does not exist and auto_create_resources is disabled")
+                logger.info(f"Successfully verified {len(subscriptions)} subscription(s) exist")
+        except Exception as e:
+            logger.error(f"Failed to verify resources: {e}")
+            self.running = False
+            raise
         
         for subscription_name, handlers in subscriptions.items():
             subscription_path = self.subscriber.subscription_path(
