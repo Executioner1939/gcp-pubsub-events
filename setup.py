@@ -37,6 +37,8 @@ setup(
         "dev": [
             "pytest>=6.0",
             "pytest-asyncio>=0.18.0",
+            "pytest-cov>=4.0.0",
+            "pytest-timeout>=2.0.0",
             "black>=22.0.0",
             "flake8>=4.0.0",
         ],
