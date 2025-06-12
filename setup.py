@@ -5,16 +5,16 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="gcp-pubsub-events",
-    version="0.1.0",
+    version="1.0.0",
     author="Your Name",
     author_email="shadowrhyder@gmail.com",
-    description="A decorator-based library for handling Google Cloud Pub/Sub messages similar to Micronaut's @PubSubListener",
+    description="A decorator-based library for handling Google Cloud Pub/Sub messages with FastAPI integration, inspired by Micronaut's @PubSubListener",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/gcp-pubsub-listener",
+    url="https://github.com/Executioner1939/gcp-pubsub-events",
     packages=find_packages(),
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
