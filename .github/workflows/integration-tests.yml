@@ -113,7 +113,7 @@ jobs:
       if: always()
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-python-${{ matrix.python-version }}
         path: |
@@ -123,7 +123,7 @@ jobs:
       if: always()
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
         flags: integration-tests
@@ -185,7 +185,7 @@ jobs:
         PUBSUB_EMULATOR_HOST: localhost:8085
     
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-results
         path: performance-results.json
