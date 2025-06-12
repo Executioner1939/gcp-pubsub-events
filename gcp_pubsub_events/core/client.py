@@ -6,13 +6,14 @@ import asyncio
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
-from typing import Optional
+from typing import Optional, Dict, Any
 
 from google.cloud import pubsub_v1
 import inspect
 
 from .acknowledgement import Acknowledgement
 from .registry import get_registry
+from .resources import ResourceManager
 from ..utils.serialization import deserialize_event
 
 logger = logging.getLogger(__name__)
@@ -43,13 +44,25 @@ class PubSubClient:
         _process_message(message, handlers): Handles incoming messages using registered handlers.
     """
     
-    def __init__(self, project_id: str, max_workers: int = 10, max_messages: int = 100):
+    def __init__(
+        self, 
+        project_id: str, 
+        max_workers: int = 10, 
+        max_messages: int = 100,
+        auto_create_resources: bool = True,
+        resource_config: Optional[Dict[str, Any]] = None
+    ):
         self.project_id = project_id
         self.subscriber = pubsub_v1.SubscriberClient()
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.max_messages = max_messages
         self.running = False
         self.streaming_futures = []
+        
+        # Resource management
+        self.auto_create_resources = auto_create_resources
+        self.resource_config = resource_config or {}
+        self.resource_manager = ResourceManager(project_id, auto_create_resources)
     
     def start_listening(self, timeout: Optional[float] = None):
         """
@@ -81,6 +94,17 @@ class PubSubClient:
         if not subscriptions:
             logger.warning("No subscriptions registered, nothing to listen to")
             return
+        
+        # Ensure all resources exist before starting to listen
+        if self.auto_create_resources:
+            try:
+                logger.info("Ensuring topics and subscriptions exist...")
+                subscription_paths = self.resource_manager.ensure_resources_for_subscriptions(subscriptions)
+                logger.info(f"Successfully verified {len(subscription_paths)} subscription(s)")
+            except Exception as e:
+                logger.error(f"Failed to ensure resources exist: {e}")
+                self.running = False
+                raise
         
         for subscription_name, handlers in subscriptions.items():
             subscription_path = self.subscriber.subscription_path(
@@ -217,11 +241,17 @@ class PubSubClient:
             # Don't call nack() here since individual handlers handle their own acknowledgments
 
 
-def create_pubsub_app(project_id: str, max_workers: int = 10, max_messages: int = 100) -> PubSubClient:
+def create_pubsub_app(
+    project_id: str, 
+    max_workers: int = 10, 
+    max_messages: int = 100,
+    auto_create_resources: bool = True,
+    resource_config: Optional[Dict[str, Any]] = None
+) -> PubSubClient:
     """
     Creates and configures a Pub/Sub client application. The function initializes a Pub/Sub client
     with the provided project identifier and optional parameters for configuring
-    worker thread pool size and maximum messages to process.
+    worker thread pool size, maximum messages to process, and resource creation behavior.
 
     Args:
         project_id (str): The Google Cloud project identifier for which the Pub/Sub client will be created.
@@ -229,8 +259,12 @@ def create_pubsub_app(project_id: str, max_workers: int = 10, max_messages: int 
             Default is 10.
         max_messages (int, optional): The maximum number of messages the client can handle simultaneously.
             Default is 100.
+        auto_create_resources (bool, optional): Whether to automatically create missing topics and subscriptions.
+            Default is True.
+        resource_config (dict, optional): Configuration for resource creation (topics, subscriptions).
+            Default is None.
 
     Returns:
         PubSubClient: A configured Pub/Sub client instance.
     """
-    return PubSubClient(project_id, max_workers, max_messages)
+    return PubSubClient(project_id, max_workers, max_messages, auto_create_resources, resource_config)

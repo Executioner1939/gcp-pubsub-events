@@ -13,6 +13,7 @@ A decorator-based Python library for handling Google Cloud Pub/Sub messages, ins
 - **Decorator-based**: Clean, annotation-style API similar to Micronaut
 - **Context Manager Support**: Proper lifecycle management with `with` and `async with` syntax
 - **FastAPI Integration**: Seamless integration with FastAPI using lifespan events
+- **Automatic Resource Creation**: Missing topics and subscriptions are created automatically
 - **Automatic registration**: Classes marked with `@pubsub_listener` are automatically registered
 - **Type-safe event handling**: Support for Pydantic models with automatic validation
 - **Async support**: Handlers can be async or sync
@@ -207,14 +208,27 @@ async with PubSubManager("project-id") as manager:
 
 ### Factory Functions
 
-#### `create_pubsub_app(project_id, max_workers=10, max_messages=100)`
-Create and configure a PubSub application (legacy approach).
+#### `create_pubsub_app(project_id, max_workers=10, max_messages=100, auto_create_resources=True, resource_config=None)`
+Create and configure a PubSub application.
 
-#### `pubsub_manager(project_id, max_workers=5, max_messages=100, **flow_control_settings)`
+**Parameters:**
+- `auto_create_resources` (bool): Whether to automatically create missing topics/subscriptions
+- `resource_config` (dict): Configuration for resource creation
+
+#### `pubsub_manager(project_id, max_workers=5, max_messages=100, auto_create_resources=True, resource_config=None, **flow_control_settings)`
 Context manager for PubSub operations.
 
-#### `async_pubsub_manager(project_id, max_workers=5, max_messages=100, **flow_control_settings)`
+#### `async_pubsub_manager(project_id, max_workers=5, max_messages=100, auto_create_resources=True, resource_config=None, **flow_control_settings)`
 Async context manager for PubSub operations (ideal for FastAPI).
+
+#### `ResourceManager(project_id, auto_create=True)`
+Direct resource management for topics and subscriptions.
+
+**Methods:**
+- `ensure_topic_exists(topic_name, **config)`: Ensure topic exists
+- `ensure_subscription_exists(subscription_name, topic_name, **config)`: Ensure subscription exists
+- `list_topics()`: List all topics in project
+- `list_subscriptions()`: List all subscriptions in project
 
 ## 🔧 Advanced Usage
 
@@ -255,6 +269,86 @@ class EventService:
     async def async_handler(self, event, acknowledgement):
         # Asynchronous processing
         await some_async_operation()
+```
+
+## 🔧 Automatic Resource Creation
+
+The library automatically creates missing topics and subscriptions by default, making development and deployment easier.
+
+### Default Behavior (Auto-Creation Enabled)
+
+```python
+from gcp_pubsub_events import create_pubsub_app
+
+# Topics and subscriptions are created automatically
+client = create_pubsub_app("my-project")
+client.start_listening()  # Creates resources as needed
+```
+
+### Disable Auto-Creation
+
+```python
+# Disable auto-creation for production environments
+client = create_pubsub_app("my-project", auto_create_resources=False)
+```
+
+### Resource Configuration
+
+```python
+# Configure resource creation
+resource_config = {
+    "ack_deadline_seconds": 30,
+    "retain_acked_messages": True,
+    "message_retention_duration": "7d"
+}
+
+client = create_pubsub_app(
+    "my-project", 
+    auto_create_resources=True,
+    resource_config=resource_config
+)
+```
+
+### Manual Resource Management
+
+```python
+from gcp_pubsub_events import ResourceManager
+
+# Direct resource management
+manager = ResourceManager("my-project", auto_create=True)
+
+# Create topic with configuration
+topic_path = manager.ensure_topic_exists("my-topic")
+
+# Create subscription with configuration
+subscription_path = manager.ensure_subscription_exists(
+    "my-subscription",
+    "my-topic",
+    ack_deadline_seconds=60,
+    dead_letter_policy={
+        "dead_letter_topic": "projects/my-project/topics/dead-letters",
+        "max_delivery_attempts": 5
+    }
+)
+
+# List existing resources
+topics = manager.list_topics()
+subscriptions = manager.list_subscriptions()
+```
+
+### Resource Naming Convention
+
+By default, the library uses the subscription name as the topic name. You can override this:
+
+```python
+@pubsub_listener
+class CustomTopicService:
+    @subscription("my-subscription", EventModel)
+    def handle_event(self, event: EventModel, ack: Acknowledgement):
+        # This creates:
+        # - Topic: "my-subscription" 
+        # - Subscription: "my-subscription"
+        pass
 ```
 
 ## 🧪 Testing

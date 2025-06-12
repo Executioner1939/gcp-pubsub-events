@@ -7,8 +7,9 @@ from .core.acknowledgement import Acknowledgement
 from .core.client import PubSubClient, create_pubsub_app
 from .core.registry import PubSubRegistry
 from .core.manager import PubSubManager, pubsub_manager, async_pubsub_manager
+from .core.resources import ResourceManager, create_resource_manager
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
@@ -22,4 +23,6 @@ __all__ = [
     "PubSubManager",
     "pubsub_manager",
     "async_pubsub_manager",
+    "ResourceManager",
+    "create_resource_manager",
 ]

@@ -38,7 +38,7 @@ class TestPubSubManager:
         assert manager.is_running
         assert manager.client == mock_client
         assert manager._thread is not None
-        mock_create_app.assert_called_once_with("test-project", max_workers=5, max_messages=100)
+        mock_create_app.assert_called_once_with("test-project", max_workers=5, max_messages=100, auto_create_resources=True, resource_config={})
         
         # Give thread a moment to start
         time.sleep(0.2)
@@ -176,7 +176,9 @@ class TestPubSubManagerHelpers:
             project_id="test-project",
             max_workers=3,
             max_messages=50,
-            flow_control_settings={}
+            flow_control_settings={},
+            auto_create_resources=True,
+            resource_config=None
         )
     
     @patch('gcp_pubsub_events.core.manager.PubSubManager')
@@ -194,7 +196,9 @@ class TestPubSubManagerHelpers:
             project_id="test-project",
             max_workers=5,
             max_messages=100,
-            flow_control_settings=flow_settings
+            flow_control_settings=flow_settings,
+            auto_create_resources=True,
+            resource_config=None
         )
     
     @patch('gcp_pubsub_events.core.manager.PubSubManager')
@@ -222,7 +226,9 @@ class TestPubSubManagerHelpers:
             project_id="test-project",
             max_workers=3,
             max_messages=100,
-            flow_control_settings={}
+            flow_control_settings={},
+            auto_create_resources=True,
+            resource_config=None
         )
 
 

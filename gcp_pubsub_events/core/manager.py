@@ -28,7 +28,9 @@ class PubSubManager:
         project_id: str,
         max_workers: int = 5,
         max_messages: int = 100,
-        flow_control_settings: Optional[Dict[str, Any]] = None
+        flow_control_settings: Optional[Dict[str, Any]] = None,
+        auto_create_resources: bool = True,
+        resource_config: Optional[Dict[str, Any]] = None
     ):
         """
         Initialize PubSub manager.
@@ -38,11 +40,15 @@ class PubSubManager:
             max_workers: Maximum number of worker threads
             max_messages: Maximum number of messages to pull at once
             flow_control_settings: Flow control configuration
+            auto_create_resources: Whether to automatically create missing resources
+            resource_config: Configuration for resource creation
         """
         self.project_id = project_id
         self.max_workers = max_workers
         self.max_messages = max_messages
         self.flow_control_settings = flow_control_settings or {}
+        self.auto_create_resources = auto_create_resources
+        self.resource_config = resource_config or {}
         
         self._client: Optional[PubSubClient] = None
         self._thread: Optional[threading.Thread] = None
@@ -72,7 +78,8 @@ class PubSubManager:
             self.project_id,
             max_workers=self.max_workers,
             max_messages=self.max_messages,
-            **self.flow_control_settings
+            auto_create_resources=self.auto_create_resources,
+            resource_config=self.resource_config
         )
         
         # Reset stop event
@@ -175,6 +182,8 @@ def pubsub_manager(
     project_id: str,
     max_workers: int = 5,
     max_messages: int = 100,
+    auto_create_resources: bool = True,
+    resource_config: Optional[Dict[str, Any]] = None,
     **flow_control_settings
 ):
     """
@@ -189,7 +198,9 @@ def pubsub_manager(
         project_id=project_id,
         max_workers=max_workers,
         max_messages=max_messages,
-        flow_control_settings=flow_control_settings
+        flow_control_settings=flow_control_settings,
+        auto_create_resources=auto_create_resources,
+        resource_config=resource_config
     )
     
     try:
@@ -204,6 +215,8 @@ async def async_pubsub_manager(
     project_id: str,
     max_workers: int = 5,
     max_messages: int = 100,
+    auto_create_resources: bool = True,
+    resource_config: Optional[Dict[str, Any]] = None,
     **flow_control_settings
 ):
     """
@@ -218,7 +231,9 @@ async def async_pubsub_manager(
         project_id=project_id,
         max_workers=max_workers,
         max_messages=max_messages,
-        flow_control_settings=flow_control_settings
+        flow_control_settings=flow_control_settings,
+        auto_create_resources=auto_create_resources,
+        resource_config=resource_config
     )
     
     try:

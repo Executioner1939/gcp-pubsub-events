@@ -166,11 +166,12 @@ async def lifespan(app: FastAPI):
     """Manage FastAPI application lifespan with PubSub integration."""
     logger.info("Starting FastAPI application...")
     
-    # Startup: Initialize PubSub manager
+    # Startup: Initialize PubSub manager with auto-creation
     async with async_pubsub_manager(
         project_id=PROJECT_ID,
         max_workers=5,
-        max_messages=50
+        max_messages=50,
+        auto_create_resources=True  # Automatically create missing topics/subscriptions
     ) as pubsub_manager:
         
         # Store manager in app state for access in endpoints
