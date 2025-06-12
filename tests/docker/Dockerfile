@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     lsb-release \
-    openjdk-11-jdk \
+    default-jdk \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Google Cloud SDK
@@ -19,8 +19,8 @@ RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.
 # Install PubSub emulator
 RUN gcloud components install pubsub-emulator --quiet
 
-# Set Java environment
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+# Set Java environment (default-jdk location)
+ENV JAVA_HOME=/usr/lib/jvm/default-java
 
 # Set working directory
 WORKDIR /workspace
