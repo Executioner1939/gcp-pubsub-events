@@ -5,7 +5,9 @@ Example usage of the GCP PubSub Listener library
 
 import asyncio
 import logging
-from dataclasses import dataclass
+from datetime import datetime
+from typing import Optional
+from pydantic import BaseModel, Field, validator
 from pubsub_listener import pubsub_listener, subscription, Acknowledgement, create_pubsub_app
 
 
@@ -16,30 +18,41 @@ logging.basicConfig(
 )
 
 
-# Define your event classes
-@dataclass
-class RegistrationEvent:
+# Define your event classes using Pydantic
+class RegistrationEvent(BaseModel):
     """Example event class for user registration."""
-    email: str
-    gamer_tag: str
-    id: str
+    email: str = Field(..., description="User's email address")
+    gamer_tag: str = Field(..., min_length=3, max_length=20, description="User's gaming tag")
+    id: str = Field(..., description="Unique user identifier")
+    timestamp: Optional[datetime] = Field(default_factory=datetime.now, description="Event timestamp")
     
-    @classmethod
-    def from_dict(cls, data: dict):
-        return cls(**data)
+    @validator('email')
+    def validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Invalid email format')
+        return v.lower()
+    
+    @validator('gamer_tag')
+    def validate_gamer_tag(cls, v):
+        if not v.replace('_', '').isalnum():
+            raise ValueError('Gamer tag must be alphanumeric (underscores allowed)')
+        return v
 
 
-@dataclass
-class PaymentEvent:
+class PaymentEvent(BaseModel):
     """Example event class for payment events."""
-    user_id: str
-    amount: float
-    currency: str
-    transaction_id: str
+    user_id: str = Field(..., description="User identifier")
+    amount: float = Field(..., gt=0, description="Payment amount (must be positive)")
+    currency: str = Field(default="USD", regex="^[A-Z]{3}$", description="3-letter currency code")
+    transaction_id: str = Field(..., description="Unique transaction identifier")
+    timestamp: Optional[datetime] = Field(default_factory=datetime.now, description="Transaction timestamp")
+    metadata: Optional[dict] = Field(default_factory=dict, description="Additional payment metadata")
     
-    @classmethod
-    def from_dict(cls, data: dict):
-        return cls(**data)
+    @validator('amount')
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError('Payment amount must be positive')
+        return round(v, 2)  # Round to 2 decimal places
 
 
 # Mock payment service for demonstration

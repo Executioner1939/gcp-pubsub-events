@@ -1,82 +1,111 @@
-# GCP PubSub Listener
+# GCP PubSub Events
 
 A decorator-based Python library for handling Google Cloud Pub/Sub messages, inspired by Micronaut's `@PubSubListener` pattern.
 
-## Features
+## 🚀 Features
 
 - **Decorator-based**: Clean, annotation-style API similar to Micronaut
 - **Automatic registration**: Classes marked with `@pubsub_listener` are automatically registered
-- **Type-safe event handling**: Support for custom event classes with automatic deserialization
+- **Type-safe event handling**: Support for Pydantic models with automatic validation
 - **Async support**: Handlers can be async or sync
 - **Error handling**: Proper ack/nack based on handler success/failure
-- **Logging**: Built-in logging for debugging and monitoring
+- **Modular design**: Well-organized package structure for maintainability
 
-## Installation
+## 📦 Installation
 
 ```bash
-pip install google-cloud-pubsub
+pip install gcp-pubsub-events
 ```
 
-Then download the `pubsub_listener.py` file or install the package when published.
+Or install from source:
+```bash
+git clone <repository-url>
+cd gcp-pubsub-events
+pip install -e .
+```
 
-## Quick Start
+## 🏗️ Project Structure
+
+```
+gcp_pubsub_events/
+├── __init__.py              # Main package exports
+├── core/                    # Core functionality
+│   ├── __init__.py
+│   ├── acknowledgement.py   # Message acknowledgment handling
+│   ├── client.py           # Main PubSub client
+│   └── registry.py         # Listener registry management
+├── decorators/             # Decorator implementations
+│   ├── __init__.py
+│   ├── listener.py         # @pubsub_listener decorator
+│   └── subscription.py     # @subscription decorator
+├── utils/                  # Utility functions
+│   ├── __init__.py
+│   └── serialization.py    # Event serialization utilities
+└── exceptions/             # Custom exceptions
+    ├── __init__.py
+    ├── base.py
+    ├── serialization.py
+    └── subscription.py
+```
+
+## 🚀 Quick Start
 
 ### 1. Define Event Classes
 
 ```python
-from dataclasses import dataclass
+from pydantic import BaseModel, Field, field_validator
 
-@dataclass
-class RegistrationEvent:
-    email: str
-    gamer_tag: str
-    id: str
+class RegistrationEvent(BaseModel):
+    email: str = Field(..., description="User's email address")
+    user_id: str = Field(..., description="Unique user identifier")
+    timestamp: datetime = Field(default_factory=datetime.now)
     
+    @field_validator('email')
     @classmethod
-    def from_dict(cls, data: dict):
-        return cls(**data)
+    def validate_email(cls, v):
+        if '@' not in v:
+            raise ValueError('Invalid email format')
+        return v.lower()
 ```
 
 ### 2. Create a Listener Service
 
 ```python
-from pubsub_listener import pubsub_listener, subscription, Acknowledgement
+from gcp_pubsub_events import pubsub_listener, subscription, Acknowledgement
 
 @pubsub_listener
-class PaymentEventService:
-    def __init__(self, payment_service):
-        self.payment_service = payment_service
+class UserEventService:
+    def __init__(self, user_service):
+        self.user_service = user_service
     
-    @subscription("payments.user.registered", RegistrationEvent)
-    async def on_registration(self, event: RegistrationEvent, acknowledgement: Acknowledgement):
+    @subscription("user.registered", RegistrationEvent)
+    async def on_user_registered(self, event: RegistrationEvent, acknowledgement: Acknowledgement):
         try:
-            result = await self.payment_service.create_customer(
-                event.email, event.gamer_tag, event.id
-            )
+            await self.user_service.create_profile(event.email, event.user_id)
             acknowledgement.ack()
-            logging.info(f"Registration processed: {result}")
+            print(f"User registered: {event.email}")
         except Exception as error:
             acknowledgement.nack()
-            logging.error(f"Error: {error}")
+            print(f"Error: {error}")
 ```
 
 ### 3. Start Listening
 
 ```python
-from pubsub_listener import create_pubsub_app
+from gcp_pubsub_events import create_pubsub_app
 
 # Initialize your services
-payment_service = YourPaymentService()
-payment_event_service = PaymentEventService(payment_service)
+user_service = UserService()
+user_event_service = UserEventService(user_service)
 
 # Start listening
 client = create_pubsub_app("your-gcp-project-id")
 client.start_listening()
 ```
 
-## API Reference
+## 📚 API Reference
 
-### Decorators
+### Core Components
 
 #### `@pubsub_listener`
 Class decorator that marks a class as a PubSub listener. Instances are automatically registered.
@@ -88,44 +117,42 @@ Method decorator that marks a method as a subscription handler.
 - `subscription_name`: The GCP Pub/Sub subscription name
 - `event_type`: Optional event class for automatic deserialization
 
-### Classes
-
 #### `Acknowledgement`
 Handles message acknowledgement.
 
 **Methods:**
 - `ack()`: Acknowledge successful processing
 - `nack()`: Negative acknowledge (mark as failed)
+- `acknowledged` (property): Check if message was acknowledged
 
 #### `PubSubClient`
 Main client for managing subscriptions.
 
 **Methods:**
-- `start_listening()`: Start listening to all registered subscriptions
+- `start_listening(timeout=None)`: Start listening to all registered subscriptions
 - `stop_listening()`: Stop listening
 
-### Functions
+### Factory Function
 
-#### `create_pubsub_app(project_id, max_workers=10)`
+#### `create_pubsub_app(project_id, max_workers=10, max_messages=100)`
 Create and configure a PubSub application.
 
-## Advanced Usage
+## 🔧 Advanced Usage
 
-### Custom Event Deserialization
+### Custom Event Validation
 
 ```python
-@dataclass
-class CustomEvent:
-    data: dict
-    timestamp: str
+from pydantic import BaseModel, Field, field_validator
+
+class PaymentEvent(BaseModel):
+    amount: float = Field(..., gt=0)
+    currency: str = Field(..., pattern="^[A-Z]{3}$")
+    user_id: str
     
+    @field_validator('amount')
     @classmethod
-    def from_dict(cls, data: dict):
-        # Custom deserialization logic
-        return cls(
-            data=data.get('payload', {}),
-            timestamp=data.get('timestamp', '')
-        )
+    def validate_amount(cls, v):
+        return round(v, 2)  # Round to 2 decimal places
 ```
 
 ### Error Handling
@@ -137,38 +164,82 @@ The library automatically handles acknowledgements based on handler success:
 
 ### Sync and Async Handlers
 
-Both sync and async handlers are supported:
-
 ```python
-@subscription("sync.topic")
-def sync_handler(self, event, acknowledgement):
-    # Synchronous processing
-    pass
+@pubsub_listener
+class EventService:
+    @subscription("sync.topic")
+    def sync_handler(self, event, acknowledgement):
+        # Synchronous processing
+        pass
 
-@subscription("async.topic")
-async def async_handler(self, event, acknowledgement):
-    # Asynchronous processing
-    await some_async_operation()
+    @subscription("async.topic")
+    async def async_handler(self, event, acknowledgement):
+        # Asynchronous processing
+        await some_async_operation()
 ```
 
-## Publishing
+## 🧪 Testing
 
-To publish this library:
-
-1. Update `setup.py` with your details
-2. Build and upload:
+The library includes comprehensive testing support with the PubSub emulator:
 
 ```bash
-python setup.py sdist bdist_wheel
-pip install twine
-twine upload dist/*
+# Start the emulator
+gcloud beta emulators pubsub start --host-port=localhost:8085
+
+# Set environment variable
+export PUBSUB_EMULATOR_HOST=localhost:8085
+
+# Run tests
+python examples/basic_example.py
 ```
 
-## Requirements
+## 📖 Examples
+
+- **Basic Example**: `examples/basic_example.py` - Simple usage with Pydantic models
+- **Advanced Example**: `examples/advanced_example.py` - Complex validation and multiple event types
+
+## 🛠️ Development
+
+### Setup Development Environment
+
+```bash
+git clone <repository-url>
+cd gcp-pubsub-events
+python -m venv venv
+source venv/bin/activate  # or `venv\Scripts\activate` on Windows
+pip install -e ".[dev]"
+```
+
+### Running Tests
+
+```bash
+# Install test dependencies
+pip install pytest pytest-asyncio
+
+# Run tests
+pytest
+```
+
+## 📋 Requirements
 
 - Python 3.7+
 - google-cloud-pubsub>=2.0.0
+- pydantic>=2.0.0
 
-## License
+## 🤝 Contributing
 
-MIT License
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🔗 Links
+
+- [Google Cloud Pub/Sub Documentation](https://cloud.google.com/pubsub/docs)
+- [Pydantic Documentation](https://docs.pydantic.dev/)
+- [Micronaut PubSub Documentation](https://micronaut-projects.github.io/micronaut-gcp/latest/guide/index.html#pubsub)

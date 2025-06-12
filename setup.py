@@ -12,7 +12,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/yourusername/gcp-pubsub-listener",
-    py_modules=["pubsub_listener"],
+    packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
@@ -30,6 +30,8 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "google-cloud-pubsub>=2.0.0",
+        "pydantic>=2.0.0",
+        "six>=1.16.0",
     ],
     extras_require={
         "dev": [
