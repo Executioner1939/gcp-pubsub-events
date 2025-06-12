@@ -40,4 +40,3 @@ perf-emulator.log
 /quick_test.py
 /simple_test.py
 /test_*.py
-/*_test.py

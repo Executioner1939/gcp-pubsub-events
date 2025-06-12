@@ -32,7 +32,7 @@ RUN pip install --no-cache-dir -e . && \
 
 # Copy test files
 COPY tests/ ./tests/
-COPY test_library_emulator.py ./
+COPY library_emulator_test.py ./
 
 # Set environment for emulator
 ENV PUBSUB_EMULATOR_HOST=localhost:8085

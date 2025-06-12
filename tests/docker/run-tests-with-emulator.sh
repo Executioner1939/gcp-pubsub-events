@@ -49,6 +49,6 @@ echo "🧪 Running e2e tests..."
 pytest tests/e2e/ -v --timeout=120
 
 echo "🧪 Running comprehensive test..."
-python test_library_emulator.py
+python library_emulator_test.py
 
 echo "✅ All Docker tests completed successfully!"

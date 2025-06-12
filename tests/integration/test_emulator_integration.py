@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from gcp_pubsub_events import pubsub_listener, subscription, Acknowledgement
 
 
-class TestEventModel(BaseModel):
+class EventModel(BaseModel):
     """Test event model."""
     id: str = Field(..., min_length=1)
     content: str = Field(..., min_length=1)
@@ -40,8 +40,8 @@ class TestIntegrationWithEmulator:
             def __init__(self, listener):
                 self.listener = listener
             
-            @subscription(subscription_name, TestEventModel)
-            async def handle_message(self, event: TestEventModel, ack: Acknowledgement):
+            @subscription(subscription_name, EventModel)
+            async def handle_message(self, event: EventModel, ack: Acknowledgement):
                 start_time = time.time()
                 self.listener.received_messages.append(event)
                 processing_time = time.time() - start_time
@@ -56,7 +56,7 @@ class TestIntegrationWithEmulator:
         time.sleep(2)  # Let client start and register handlers
         
         # Publish test message
-        test_event = TestEventModel(id="test-1", content="Hello World", sequence=1)
+        test_event = EventModel(id="test-1", content="Hello World", sequence=1)
         message_data = test_event.model_dump_json().encode('utf-8')
         
         future = pubsub_publisher.publish(test_topic, message_data)
@@ -86,8 +86,8 @@ class TestIntegrationWithEmulator:
             def __init__(self, listener):
                 self.listener = listener
             
-            @subscription(subscription_name, TestEventModel)
-            def handle_message(self, event: TestEventModel, ack: Acknowledgement):
+            @subscription(subscription_name, EventModel)
+            def handle_message(self, event: EventModel, ack: Acknowledgement):
                 self.listener.received_messages.append(event)
                 ack.ack()
         
@@ -101,7 +101,7 @@ class TestIntegrationWithEmulator:
         # Publish multiple messages
         message_count = 5
         for i in range(1, message_count + 1):
-            test_event = TestEventModel(
+            test_event = EventModel(
                 id=f"test-{i}",
                 content=f"Message {i}",
                 sequence=i
@@ -136,8 +136,8 @@ class TestIntegrationWithEmulator:
             def __init__(self, listener):
                 self.listener = listener
             
-            @subscription(subscription_name, TestEventModel)
-            def handle_message(self, event: TestEventModel, ack: Acknowledgement):
+            @subscription(subscription_name, EventModel)
+            def handle_message(self, event: EventModel, ack: Acknowledgement):
                 self.listener.received_messages.append(event)
                 ack.ack()
         
@@ -171,8 +171,8 @@ class TestIntegrationWithEmulator:
             def __init__(self, listener):
                 self.listener = listener
             
-            @subscription(subscription_name, TestEventModel)
-            async def handle_message_async(self, event: TestEventModel, ack: Acknowledgement):
+            @subscription(subscription_name, EventModel)
+            async def handle_message_async(self, event: EventModel, ack: Acknowledgement):
                 # Simulate async work
                 await asyncio.sleep(0.1)
                 self.listener.received_messages.append(event)
@@ -186,7 +186,7 @@ class TestIntegrationWithEmulator:
         time.sleep(1)
         
         # Publish message
-        test_event = TestEventModel(id="async-test", content="Async Handler Test", sequence=1)
+        test_event = EventModel(id="async-test", content="Async Handler Test", sequence=1)
         message_data = test_event.model_dump_json().encode('utf-8')
         
         future = pubsub_publisher.publish(test_topic, message_data)
@@ -214,8 +214,8 @@ class TestIntegrationWithEmulator:
                 self.listener = listener
                 self.call_count = 0
             
-            @subscription(subscription_name, TestEventModel)
-            def handle_message_with_error(self, event: TestEventModel, ack: Acknowledgement):
+            @subscription(subscription_name, EventModel)
+            def handle_message_with_error(self, event: EventModel, ack: Acknowledgement):
                 self.call_count += 1
                 if event.id == "error-test":
                     # Simulate an error
@@ -231,7 +231,7 @@ class TestIntegrationWithEmulator:
         time.sleep(1)
         
         # Publish message that will cause error
-        error_event = TestEventModel(id="error-test", content="This will fail", sequence=1)
+        error_event = EventModel(id="error-test", content="This will fail", sequence=1)
         message_data = error_event.model_dump_json().encode('utf-8')
         
         future = pubsub_publisher.publish(test_topic, message_data)

@@ -41,7 +41,7 @@ TEST_TIMEOUT = 15  # seconds
 
 
 # Test event model
-class TestMessage(BaseModel):
+class Message(BaseModel):
     """Test message with validation."""
     id: str = Field(..., min_length=1, description="Message ID")
     content: str = Field(..., min_length=1, description="Message content")
@@ -58,17 +58,17 @@ class TestMessage(BaseModel):
 
 # Test listener to collect received messages
 @pubsub_listener
-class TestMessageListener:
+class MessageListener:
     """Test listener to collect received messages."""
     
     def __init__(self):
-        self.received_messages: List[TestMessage] = []
+        self.received_messages: List[Message] = []
         self.processing_times: List[float] = []
         self.errors: List[str] = []
         self.logger = logging.getLogger(self.__class__.__name__)
     
-    @subscription(SUBSCRIPTION_NAME, TestMessage)
-    async def handle_test_message(self, message: TestMessage, ack: Acknowledgement):
+    @subscription(SUBSCRIPTION_NAME, Message)
+    async def handle_test_message(self, message: Message, ack: Acknowledgement):
         """Handle incoming test messages."""
         start_time = time.time()
         
@@ -147,7 +147,7 @@ class EmulatorTester:
         published_messages = []
         
         for i in range(1, count + 1):
-            test_message = TestMessage(
+            test_message = Message(
                 id=f"test-msg-{i:03d}",
                 content=f"Test message content {i}",
                 sequence=i
@@ -174,7 +174,7 @@ class EmulatorTester:
         """Start the subscriber in a separate thread."""
         print("👂 Starting subscriber...")
         
-        self.listener = TestMessageListener()
+        self.listener = MessageListener()
         self.client = create_pubsub_app(PROJECT_ID, max_workers=3, max_messages=10)
         
         def run_subscriber():
@@ -237,7 +237,7 @@ class EmulatorTester:
         for i, received_msg in enumerate(received):
             print(f"  📋 Message {i+1}: {received_msg.id} - {received_msg.content}")
             
-            # Verify it's a valid TestMessage with validation
+            # Verify it's a valid Message with validation
             try:
                 if received_msg.sequence < 1:
                     print(f"  ❌ Invalid sequence number: {received_msg.sequence}")

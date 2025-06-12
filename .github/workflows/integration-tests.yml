@@ -104,7 +104,7 @@ jobs:
     
     - name: Run comprehensive library test
       run: |
-        python test_library_emulator.py
+        python library_emulator_test.py
       env:
         PUBSUB_EMULATOR_HOST: localhost:8085
     
