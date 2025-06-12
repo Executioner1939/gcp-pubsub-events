@@ -3,7 +3,7 @@
 [![CI](https://github.com/Executioner1939/gcp-pubsub-events/actions/workflows/build-and-publish.yml/badge.svg)](https://github.com/Executioner1939/gcp-pubsub-events/actions/workflows/build-and-publish.yml)
 [![PyPI version](https://badge.fury.io/py/gcp-pubsub-events.svg)](https://pypi.org/project/gcp-pubsub-events/)
 [![codecov](https://codecov.io/gh/Executioner1939/gcp-pubsub-events/branch/main/graph/badge.svg)](https://codecov.io/gh/Executioner1939/gcp-pubsub-events)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A decorator-based Python library for handling Google Cloud Pub/Sub messages, inspired by Micronaut's `@PubSubListener` pattern.
@@ -27,11 +27,16 @@ A decorator-based Python library for handling Google Cloud Pub/Sub messages, ins
 pip install gcp-pubsub-events
 ```
 
+Or install with Poetry:
+```bash
+poetry add gcp-pubsub-events
+```
+
 Or install from source:
 ```bash
 git clone <repository-url>
 cd gcp-pubsub-events
-pip install -e .
+poetry install
 ```
 
 ## 🏗️ Project Structure
@@ -124,19 +129,31 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from gcp_pubsub_events import async_pubsub_manager
 
+# Global variable to store the manager
+pubsub_manager_instance = None
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global pubsub_manager_instance
     # Startup: Initialize PubSub
     async with async_pubsub_manager("your-gcp-project-id") as manager:
-        app.state.pubsub = manager
+        pubsub_manager_instance = manager
         yield
     # Shutdown: Automatic cleanup
+    pubsub_manager_instance = None
 
 app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def read_root():
     return {"status": "running"}
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "pubsub_running": pubsub_manager_instance.is_running if pubsub_manager_instance else False
+    }
 ```
 
 #### Option C: Manual Management
@@ -357,7 +374,7 @@ The library includes comprehensive testing support with the PubSub emulator:
 
 ```bash
 # Install development dependencies
-pip install -e .[dev]
+poetry install --with dev,test
 
 # Start the emulator
 gcloud beta emulators pubsub start --host-port=localhost:8085
@@ -366,10 +383,10 @@ gcloud beta emulators pubsub start --host-port=localhost:8085
 export PUBSUB_EMULATOR_HOST=localhost:8085
 
 # Run tests
-pytest tests/ -v
+poetry run pytest tests/ -v
 
 # Run tests with coverage
-pytest tests/ --cov=gcp_pubsub_events --cov-report=html
+poetry run pytest tests/ --cov=gcp_pubsub_events --cov-report=html
 ```
 
 ### Test Coverage
@@ -394,24 +411,22 @@ Coverage reports are automatically generated and uploaded to [Codecov](https://c
 ```bash
 git clone <repository-url>
 cd gcp-pubsub-events
-python -m venv venv
-source venv/bin/activate  # or `venv\Scripts\activate` on Windows
-pip install -e ".[dev]"
+poetry install --with dev,test
 ```
 
 ### Running Tests
 
 ```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
+# Run tests with Poetry
+poetry run pytest
 
-# Run tests
-pytest
+# Run tests with coverage
+poetry run pytest --cov=gcp_pubsub_events --cov-report=html
 ```
 
 ## 📋 Requirements
 
-- Python 3.7+
+- Python 3.11+
 - google-cloud-pubsub>=2.0.0
 - pydantic>=2.0.0
 
