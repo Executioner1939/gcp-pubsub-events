@@ -14,8 +14,7 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     
-    services:
-      # We'll start the emulator as a step instead of service for better control
+    # Note: We start the emulator as a step instead of service for better control
     
     steps:
     - name: Checkout code
