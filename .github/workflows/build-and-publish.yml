@@ -179,36 +179,6 @@ jobs:
         path: dist/
         retention-days: 30
 
-  publish-test:
-    needs: [test, build]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    
-    - name: Install build dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install build twine wheel
-    
-    - name: Build package
-      run: |
-        python -m build
-    
-    - name: Publish to TestPyPI
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.TEST_PYPI_API_TOKEN }}
-      run: |
-        python -m twine upload --repository testpypi dist/* || echo "TestPyPI upload failed (probably version exists)"
-      continue-on-error: true
-
   publish:
     needs: [test, build]
     runs-on: ubuntu-latest
@@ -245,41 +215,3 @@ jobs:
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
         python -m twine upload dist/*
-    
-    - name: Create Release (on tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: Release ${{ github.ref_name }}
-        body: |
-          Release of gcp-pubsub-events ${{ github.ref_name }}
-          
-          ## Installation
-          Install from PyPI:
-          ```bash
-          pip install gcp-pubsub-events
-          ```
-          
-          Or download the wheel/tar.gz from the assets below:
-          ```bash
-          pip install gcp-pubsub-events-*.whl
-          ```
-          
-          ## What's New
-          See the [CHANGELOG](https://github.com/Executioner1939/gcp-pubsub-events/releases) for full details.
-        draft: false
-        prerelease: false
-    
-    - name: Upload Release Assets
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/
-        asset_name: gcp-pubsub-events-dist
-        asset_content_type: application/zip
