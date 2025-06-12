@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="gcp-pubsub-events",
-    version="1.0.0",
+    version="1.0.1",
     author="Your Name",
     author_email="shadowrhyder@gmail.com",
     description="A decorator-based library for handling Google Cloud Pub/Sub messages with FastAPI integration, inspired by Micronaut's @PubSubListener",
