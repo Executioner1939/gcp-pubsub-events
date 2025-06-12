@@ -10,10 +10,13 @@ A decorator-based Python library for handling Google Cloud Pub/Sub messages, ins
 ## 🚀 Features
 
 - **Decorator-based**: Clean, annotation-style API similar to Micronaut
+- **Context Manager Support**: Proper lifecycle management with `with` and `async with` syntax
+- **FastAPI Integration**: Seamless integration with FastAPI using lifespan events
 - **Automatic registration**: Classes marked with `@pubsub_listener` are automatically registered
 - **Type-safe event handling**: Support for Pydantic models with automatic validation
 - **Async support**: Handlers can be async or sync
 - **Error handling**: Proper ack/nack based on handler success/failure
+- **Thread management**: Automatic background thread handling with graceful shutdown
 - **Modular design**: Well-organized package structure for maintainability
 
 ## 📦 Installation
@@ -96,6 +99,46 @@ class UserEventService:
 
 ### 3. Start Listening
 
+#### Option A: Context Manager (Recommended)
+
+```python
+from gcp_pubsub_events import pubsub_manager
+
+# Initialize your services
+user_service = UserService()
+user_event_service = UserEventService(user_service)
+
+# Use context manager for automatic cleanup
+with pubsub_manager("your-gcp-project-id") as manager:
+    print("PubSub listener started. Press Ctrl+C to stop.")
+    # Your application runs here
+    # Cleanup happens automatically when exiting the context
+```
+
+#### Option B: FastAPI Integration
+
+```python
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from gcp_pubsub_events import async_pubsub_manager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize PubSub
+    async with async_pubsub_manager("your-gcp-project-id") as manager:
+        app.state.pubsub = manager
+        yield
+    # Shutdown: Automatic cleanup
+
+app = FastAPI(lifespan=lifespan)
+
+@app.get("/")
+def read_root():
+    return {"status": "running"}
+```
+
+#### Option C: Manual Management
+
 ```python
 from gcp_pubsub_events import create_pubsub_app
 
@@ -103,9 +146,12 @@ from gcp_pubsub_events import create_pubsub_app
 user_service = UserService()
 user_event_service = UserEventService(user_service)
 
-# Start listening
+# Manual management (not recommended for production)
 client = create_pubsub_app("your-gcp-project-id")
-client.start_listening()
+try:
+    client.start_listening()
+except KeyboardInterrupt:
+    client.stop_listening()
 ```
 
 ## 📚 API Reference
@@ -137,10 +183,37 @@ Main client for managing subscriptions.
 - `start_listening(timeout=None)`: Start listening to all registered subscriptions
 - `stop_listening()`: Stop listening
 
-### Factory Function
+#### `PubSubManager` (Recommended)
+Enhanced manager with context manager support for proper lifecycle management.
+
+**Methods:**
+- `start()`: Start the PubSub listener in a background thread
+- `stop(timeout=10.0)`: Stop listening with optional timeout
+- `is_running` (property): Check if manager is currently running
+
+**Context Manager Support:**
+```python
+# Sync context manager
+with PubSubManager("project-id") as manager:
+    # Your code here
+    pass
+
+# Async context manager  
+async with PubSubManager("project-id") as manager:
+    # Your async code here
+    pass
+```
+
+### Factory Functions
 
 #### `create_pubsub_app(project_id, max_workers=10, max_messages=100)`
-Create and configure a PubSub application.
+Create and configure a PubSub application (legacy approach).
+
+#### `pubsub_manager(project_id, max_workers=5, max_messages=100, **flow_control_settings)`
+Context manager for PubSub operations.
+
+#### `async_pubsub_manager(project_id, max_workers=5, max_messages=100, **flow_control_settings)`
+Async context manager for PubSub operations (ideal for FastAPI).
 
 ## 🔧 Advanced Usage
 

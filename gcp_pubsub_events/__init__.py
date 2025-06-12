@@ -6,6 +6,7 @@ from .decorators import pubsub_listener, subscription
 from .core.acknowledgement import Acknowledgement
 from .core.client import PubSubClient, create_pubsub_app
 from .core.registry import PubSubRegistry
+from .core.manager import PubSubManager, pubsub_manager, async_pubsub_manager
 
 __version__ = "0.1.0"
 __author__ = "Your Name"
@@ -18,4 +19,7 @@ __all__ = [
     "PubSubClient",
     "create_pubsub_app",
     "PubSubRegistry",
+    "PubSubManager",
+    "pubsub_manager",
+    "async_pubsub_manager",
 ]

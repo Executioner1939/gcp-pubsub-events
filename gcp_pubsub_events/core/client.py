@@ -69,10 +69,20 @@ class PubSubClient:
             TimeoutError: If processing of messages exceeds the specified timeout duration.
             KeyboardInterrupt: If the listener is manually interrupted via keyboard signal.
         """
+        if self.running:
+            logger.warning("Client is already listening")
+            return
+            
         self.running = True
         registry = get_registry()
         
-        for subscription_name, handlers in registry.get_all_subscriptions().items():
+        # Check if there are any subscriptions to listen to
+        subscriptions = registry.get_all_subscriptions()
+        if not subscriptions:
+            logger.warning("No subscriptions registered, nothing to listen to")
+            return
+        
+        for subscription_name, handlers in subscriptions.items():
             subscription_path = self.subscriber.subscription_path(
                 self.project_id, subscription_name
             )
@@ -96,31 +106,29 @@ class PubSubClient:
         # Keep the main thread running
         try:
             logger.info("PubSub listener started. Press Ctrl+C to stop.")
-            with self.subscriber:
-                try:
-                    # Wait for messages with optional timeout
-                    for future in self.streaming_futures:
-                        if timeout:
-                            future.result(timeout=timeout)
-                        else:
-                            # Run indefinitely until interrupted
-                            while self.running:
-                                try:
-                                    future.result(timeout=1.0)
-                                except TimeoutError:
-                                    continue
-                                except Exception as e:
-                                    logger.error(f"Error in subscription: {e}")
-                                    break
-                except TimeoutError:
+            
+            if timeout:
+                # Run with timeout
+                import time
+                start_time = time.time()
+                while self.running and (time.time() - start_time) < timeout:
+                    time.sleep(0.1)
+                if self.running:
                     logger.info("Timeout reached, stopping listener")
-                except KeyboardInterrupt:
-                    logger.info("Received interrupt signal")
-                finally:
-                    self.stop_listening()
+            else:
+                # Run indefinitely until stopped
+                while self.running:
+                    try:
+                        time.sleep(1.0)
+                    except KeyboardInterrupt:
+                        logger.info("Received interrupt signal")
+                        break
+                        
         except KeyboardInterrupt:
             logger.info("Shutting down PubSub listener...")
-            self.stop_listening()
+        finally:
+            if self.running:
+                self.stop_listening()
     
     def stop_listening(self):
         """

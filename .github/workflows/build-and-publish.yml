@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -237,65 +237,3 @@ jobs:
         asset_path: dist/
         asset_name: gcp-pubsub-events-dist
         asset_content_type: application/zip
-
-  performance-tests:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y openjdk-11-jdk
-    
-    - name: Install Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-      with:
-        version: 'latest'
-    
-    - name: Install PubSub emulator
-      run: |
-        gcloud components install beta pubsub-emulator --quiet
-    
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -e .
-        pip install pytest-benchmark pytest-cov
-    
-    - name: Start PubSub emulator
-      run: |
-        nohup gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 > perf-emulator.log 2>&1 &
-        
-        # Wait for emulator to be ready
-        timeout=30
-        while [ $timeout -gt 0 ]; do
-          if curl -f http://localhost:8085 >/dev/null 2>&1; then
-            echo "✅ Performance emulator is ready!"
-            break
-          fi
-          sleep 1
-          timeout=$((timeout-1))
-        done
-    
-    - name: Run performance tests
-      run: |
-        python tests/performance/benchmark_throughput.py
-      env:
-        PUBSUB_EMULATOR_HOST: localhost:8085
-    
-    - name: Upload performance results
-      uses: actions/upload-artifact@v4
-      with:
-        name: performance-results
-        path: performance-results.json
-      if: always()

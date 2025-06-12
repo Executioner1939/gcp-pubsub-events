@@ -35,8 +35,3 @@ dist/
 coverage.xml
 emulator.log
 perf-emulator.log
-
-# Ad-hoc test files (keep organized tests in tests/ directory)
-/quick_test.py
-/simple_test.py
-/test_*.py
