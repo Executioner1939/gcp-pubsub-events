@@ -7,17 +7,23 @@ import asyncio
 import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 from google.cloud import pubsub_v1
 import inspect
 
+try:
+    from pydantic import BaseModel, ValidationError
+    PYDANTIC_AVAILABLE = True
+except ImportError:
+    BaseModel = None
+    ValidationError = None
+    PYDANTIC_AVAILABLE = False
+
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
 class Acknowledgement:
     """Handles message acknowledgement for Pub/Sub messages."""
     
@@ -183,6 +189,28 @@ class PubSubClient:
         self.running = False
         self.executor.shutdown(wait=True)
     
+    def _deserialize_event(self, data: dict, event_type: Type) -> Any:
+        """Deserialize event data to the specified event type."""
+        try:
+            # Try Pydantic first if available and event_type is a Pydantic model
+            if PYDANTIC_AVAILABLE and BaseModel and issubclass(event_type, BaseModel):
+                return event_type.model_validate(data)
+            
+            # Try custom from_dict method
+            elif hasattr(event_type, 'from_dict'):
+                return event_type.from_dict(data)
+            
+            # Try dataclass or simple class instantiation
+            else:
+                return event_type(**data)
+                
+        except ValidationError as e:
+            logger.error(f"Pydantic validation error for {event_type.__name__}: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error deserializing event to {event_type.__name__}: {e}")
+            raise
+    
     def _process_message(self, message, handlers: List[Dict]):
         """Process a received message with the appropriate handlers."""
         try:
@@ -198,11 +226,7 @@ class PubSubClient:
                     # Prepare arguments for the handler
                     if event_type:
                         # Deserialize to event type
-                        if hasattr(event_type, 'from_dict'):
-                            event = event_type.from_dict(data)
-                        else:
-                            # Simple dataclass instantiation
-                            event = event_type(**data)
+                        event = self._deserialize_event(data, event_type)
                     else:
                         # Pass raw data
                         event = data
