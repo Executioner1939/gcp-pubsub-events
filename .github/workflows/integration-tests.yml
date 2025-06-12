@@ -52,7 +52,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -e .
-        pip install pytest pytest-asyncio pytest-timeout pytest-xdist pytest-cov
+        pip install pytest pytest-cov pytest-asyncio pytest-timeout pytest-xdist
     
     - name: Start PubSub emulator
       run: |
@@ -110,7 +110,7 @@ jobs:
     
     - name: Generate test report
       run: |
-        pytest tests/ --junitxml=test-results.xml --cov=gcp_pubsub_events --cov-report=xml --cov-report=html
+        pytest --cov --cov-branch --cov-report=xml --junitxml=test-results.xml
       env:
         PUBSUB_EMULATOR_HOST: localhost:8085
       if: always()
@@ -129,7 +129,6 @@ jobs:
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
         flags: integration-tests
         name: python-${{ matrix.python-version }}
       if: matrix.python-version == '3.11' # Only upload once
