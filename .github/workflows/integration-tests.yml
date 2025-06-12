@@ -14,7 +14,7 @@ jobs:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
     
-    # Note: We start the emulator as a step instead of service for better control
+    # Note: We start the emulator as a step for better control
     
     steps:
     - name: Checkout code
@@ -56,31 +56,34 @@ jobs:
     
     - name: Start PubSub emulator
       run: |
+        # Install PubSub emulator if not already installed
+        gcloud components install beta pubsub-emulator --quiet || true
+        
         # Start emulator in background
-        gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 &
+        nohup gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 > emulator.log 2>&1 &
         EMULATOR_PID=$!
         echo "EMULATOR_PID=$EMULATOR_PID" >> $GITHUB_ENV
+        echo "PUBSUB_EMULATOR_HOST=localhost:8085" >> $GITHUB_ENV
         
         # Wait for emulator to be ready
         echo "Waiting for emulator to start..."
-        timeout=30
+        timeout=60
         while [ $timeout -gt 0 ]; do
           if curl -f http://localhost:8085 >/dev/null 2>&1; then
-            echo "Emulator is ready!"
+            echo "✅ Emulator is ready!"
             break
           fi
-          sleep 1
-          timeout=$((timeout-1))
+          echo "⏳ Waiting... ($timeout seconds left)"
+          sleep 2
+          timeout=$((timeout-2))
         done
         
-        if [ $timeout -eq 0 ]; then
-          echo "Emulator failed to start!"
+        if [ $timeout -le 0 ]; then
+          echo "❌ Emulator failed to start!"
+          echo "Emulator logs:"
+          cat emulator.log || echo "No emulator log found"
           exit 1
         fi
-    
-    - name: Set emulator environment
-      run: |
-        echo "PUBSUB_EMULATOR_HOST=localhost:8085" >> $GITHUB_ENV
     
     - name: Run unit tests
       run: |
@@ -132,11 +135,16 @@ jobs:
     
     - name: Stop PubSub emulator
       run: |
+        echo "🧹 Stopping PubSub emulator..."
         if [ ! -z "$EMULATOR_PID" ]; then
+          echo "Killing emulator PID: $EMULATOR_PID"
           kill $EMULATOR_PID || true
+          sleep 2
         fi
         # Kill any remaining emulator processes
         pkill -f "pubsub-emulator" || true
+        pkill -f "cloud-pubsub-emulator" || true
+        echo "✅ Cleanup complete"
       if: always()
 
   performance-tests:
@@ -165,7 +173,7 @@ jobs:
     
     - name: Install PubSub emulator
       run: |
-        gcloud components install pubsub-emulator --quiet
+        gcloud components install beta pubsub-emulator --quiet
     
     - name: Install Python dependencies
       run: |
@@ -175,8 +183,18 @@ jobs:
     
     - name: Start PubSub emulator
       run: |
-        gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 &
-        sleep 10
+        nohup gcloud beta emulators pubsub start --host-port=0.0.0.0:8085 > perf-emulator.log 2>&1 &
+        
+        # Wait for emulator to be ready
+        timeout=30
+        while [ $timeout -gt 0 ]; do
+          if curl -f http://localhost:8085 >/dev/null 2>&1; then
+            echo "✅ Performance emulator is ready!"
+            break
+          fi
+          sleep 1
+          timeout=$((timeout-1))
+        done
     
     - name: Run performance tests
       run: |
