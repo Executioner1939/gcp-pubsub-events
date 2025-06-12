@@ -8,16 +8,13 @@ RUN apt-get update && apt-get install -y \
     default-jdk \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Cloud SDK
+# Install Google Cloud SDK and PubSub emulator
 RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | \
     tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | \
     apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
-    apt-get update && apt-get install -y google-cloud-cli && \
+    apt-get update && apt-get install -y google-cloud-cli google-cloud-cli-pubsub-emulator && \
     rm -rf /var/lib/apt/lists/*
-
-# Install PubSub emulator
-RUN gcloud components install pubsub-emulator --quiet
 
 # Set Java environment (default-jdk location)
 ENV JAVA_HOME=/usr/lib/jvm/default-java
@@ -26,7 +23,7 @@ ENV JAVA_HOME=/usr/lib/jvm/default-java
 WORKDIR /workspace
 
 # Copy requirements and install Python dependencies
-COPY requirements.txt setup.py ./
+COPY requirements.txt setup.py README.md ./
 COPY gcp_pubsub_events/ ./gcp_pubsub_events/
 
 # Install the library

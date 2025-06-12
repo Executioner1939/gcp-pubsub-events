@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from gcp_pubsub_events import pubsub_listener, subscription, Acknowledgement
 
 
-class TestEventModelModel(BaseModel):
+class TestEventModel(BaseModel):
     """Test event model."""
     id: str = Field(..., min_length=1)
     content: str = Field(..., min_length=1)
