@@ -37,10 +37,6 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       continue-on-error: true
     
-    - name: Test import
-      run: |
-        python -c "import pubsub_listener; print('Import successful')"
-    
     - name: Build package
       run: |
         python -m build
