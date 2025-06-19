@@ -3,7 +3,6 @@ Integration tests for FastAPI with PubSub manager
 """
 
 import asyncio
-import json
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -13,11 +12,12 @@ from unittest.mock import patch
 import pytest
 
 # Only run these tests if FastAPI is available
-fastapi = pytest.importorskip("fastapi")
-httpx = pytest.importorskip("httpx")
+try:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+except ImportError:
+    pytest.skip("FastAPI not installed", allow_module_level=True)
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from pydantic import BaseModel, Field
 
 from gcp_pubsub_events import Acknowledgement, async_pubsub_manager, pubsub_listener, subscription
@@ -105,7 +105,7 @@ class TestFastAPIIntegration:
         """Test FastAPI receiving and processing PubSub messages."""
 
         # Mock the client
-        mock_client = mock_create_app.return_value
+        mock_create_app.return_value
 
         # Create listener
         listener = UserEventListener()
@@ -203,7 +203,7 @@ class TestFastAPIIntegration:
         """Test multiple FastAPI instances with separate PubSub managers."""
 
         # Mock the client
-        mock_client = mock_create_app.return_value
+        mock_create_app.return_value
 
         # Create two separate apps
         @asynccontextmanager

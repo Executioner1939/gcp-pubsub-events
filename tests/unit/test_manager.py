@@ -2,10 +2,8 @@
 Tests for PubSubManager context manager functionality
 """
 
-import asyncio
-import threading
 import time
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -286,7 +284,7 @@ class TestPubSubManagerThreading:
         slow_thread.join.return_value = None
         manager._thread = slow_thread
 
-        with patch("gcp_pubsub_events.core.manager.logger") as mock_logger:
+        with patch("gcp_pubsub_events.core.manager.logger"):
             manager.stop(timeout=0.1)
             # Should warn about timeout (mock setup makes it look like it didn't stop)
 

@@ -3,7 +3,7 @@ Resource management for automatic topic and subscription creation.
 """
 
 import logging
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Set
 
 from google.api_core import exceptions
 from google.cloud import pubsub_v1

@@ -3,13 +3,11 @@ End-to-end tests for complete workflow scenarios
 """
 
 import asyncio
-import json
 import time
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List
 
-import pytest
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from gcp_pubsub_events import Acknowledgement, pubsub_listener, subscription
@@ -223,11 +221,11 @@ class TestCompleteWorkflow:
                     ack.nack()
                     raise e
 
-        # Create handler
-        handler = WorkflowEventHandler(workflow_state)
+        # Create handler instance - this registers the handlers via decorators
+        WorkflowEventHandler(workflow_state)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=30)
+        run_client(pubsub_client, timeout=30)
         time.sleep(2)  # Let client start and register handlers
 
         # Start the workflow by publishing user registration event
@@ -320,11 +318,11 @@ class TestCompleteWorkflow:
                 self.state["success"] = True
                 ack.ack()
 
-        # Create handler
-        handler = ErrorRecoveryHandler(processing_state)
+        # Create handler instance - this registers the handlers via decorators
+        ErrorRecoveryHandler(processing_state)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=20)
+        run_client(pubsub_client, timeout=20)
         time.sleep(2)
 
         # Publish event that will initially fail

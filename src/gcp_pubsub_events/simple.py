@@ -8,7 +8,7 @@ hiding the complexity of managers, clients, and registries.
 import logging
 import signal
 import sys
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Optional
 
 from .core.manager import PubSubManager
 from .core.registry import get_registry

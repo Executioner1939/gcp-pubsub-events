@@ -2,7 +2,7 @@
 Tests for ResourceManager functionality
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from google.api_core import exceptions

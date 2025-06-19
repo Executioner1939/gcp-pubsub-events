@@ -12,14 +12,13 @@ import time
 from datetime import datetime
 from typing import List
 
+from google.cloud import pubsub_v1
 from pydantic import BaseModel, Field
+
+from gcp_pubsub_events import Acknowledgement, create_pubsub_app, pubsub_listener, subscription
 
 # Set emulator environment
 os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
-
-from google.cloud import pubsub_v1
-
-from gcp_pubsub_events import Acknowledgement, create_pubsub_app, pubsub_listener, subscription
 
 
 class BenchmarkEvent(BaseModel):
@@ -136,8 +135,8 @@ def run_throughput_benchmark(message_count: int = 1000, payload_size: int = 1024
                 self.metrics.record_error()
                 ack.nack()
 
-    # Create listener and client
-    listener = BenchmarkListener(metrics)
+    # Create listener instance - this registers the handlers via decorators
+    BenchmarkListener(metrics)
     client = create_pubsub_app(project_id, max_workers=10, max_messages=50)
 
     # Start client in thread
@@ -161,7 +160,7 @@ def run_throughput_benchmark(message_count: int = 1000, payload_size: int = 1024
         event = BenchmarkEvent(id=f"bench-{i:06d}", payload=payload, sequence=i + 1)
 
         message_data = event.model_dump_json().encode("utf-8")
-        future = publisher.publish(topic_path, message_data)
+        publisher.publish(topic_path, message_data)
 
         # Don't wait for result to maximize throughput
         if i % 100 == 0:
@@ -233,8 +232,8 @@ def run_latency_benchmark(message_count: int = 100):
             received_times[event.id] = time.time()
             ack.ack()
 
-    # Setup client
-    listener = LatencyListener()
+    # Setup client - this registers the handlers via decorators
+    LatencyListener()
     client = create_pubsub_app(project_id, max_workers=5, max_messages=10)
 
     def run_client():
@@ -319,19 +318,19 @@ def main():
 
         results[f"throughput_{msg_count}_{payload_size}"] = summary
 
-        print(f"✅ Results:")
+        print("✅ Results:")
         print(f"   Messages/sec: {summary['messages_per_second']:.1f}")
         print(f"   Avg processing: {summary['avg_processing_time_ms']:.2f}ms")
         print(f"   P95 processing: {summary['p95_processing_time_ms']:.2f}ms")
         print(f"   Errors: {summary['errors']}")
 
     # Latency benchmark
-    print(f"\n🕐 Latency Benchmark")
+    print("\n🕐 Latency Benchmark")
     latency_results = run_latency_benchmark(50)
     results["latency"] = latency_results
 
     if "error" not in latency_results:
-        print(f"✅ Latency Results:")
+        print("✅ Latency Results:")
         print(f"   Avg latency: {latency_results['avg_latency_ms']:.2f}ms")
         print(f"   Median latency: {latency_results['median_latency_ms']:.2f}ms")
         print(f"   P95 latency: {latency_results['p95_latency_ms']:.2f}ms")
@@ -343,7 +342,7 @@ def main():
     with open("performance-results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    print(f"\n📊 Performance results saved to performance-results.json")
+    print("\n📊 Performance results saved to performance-results.json")
     print("🏁 Benchmarks completed!")
 
 

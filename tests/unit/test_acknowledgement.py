@@ -2,8 +2,6 @@
 Unit tests for Acknowledgement class
 """
 
-import pytest
-
 from gcp_pubsub_events.core.acknowledgement import Acknowledgement
 
 

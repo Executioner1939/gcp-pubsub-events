@@ -46,6 +46,7 @@ black = ">=23,<25"
 flake8 = "^6.0.0"
 isort = "^5.12.0"
 mypy = "^1.0.0"
+flake8-pyproject = "^1.2.3"
 
 [tool.poetry.group.test.dependencies]
 # Additional test dependencies for CI
@@ -175,6 +176,36 @@ precision = 2
 
 [tool.coverage.html]
 directory = "htmlcov"
+
+# Flake8 configuration (via Flake8-pyproject)
+[tool.flake8]
+max-line-length = 150
+exclude = [
+    ".git",
+    "__pycache__",
+    "dist",
+    "build",
+    ".eggs",
+    "*.egg",
+    ".venv",
+    "venv",
+    ".tox",
+    ".mypy_cache",
+    ".pytest_cache",
+    "htmlcov",
+    ".coverage",
+    "examples"
+]
+ignore = [
+    # W503: line break before binary operator (conflicts with black)
+    "W503",
+    # E203: whitespace before ':' (conflicts with black)
+    "E203"
+]
+per-file-ignores = [
+    # Allow imports at module level in __init__.py files
+    "__init__.py:F401"
+]
 
 # Setuptools configuration (for compatibility)
 [tool.setuptools]

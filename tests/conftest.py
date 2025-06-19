@@ -6,18 +6,16 @@ import asyncio
 import os
 import threading
 import time
-from typing import Generator, List
-from unittest.mock import Mock
+from typing import List
 
 import pytest
-
-# Set emulator environment for all tests
-os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
-
 from google.cloud import pubsub_v1
 
 from gcp_pubsub_events import PubSubClient, create_pubsub_app
 from gcp_pubsub_events.core.registry import get_registry
+
+# Set emulator environment for all tests
+os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
 
 
 @pytest.fixture(scope="session")

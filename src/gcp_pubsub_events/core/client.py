@@ -7,15 +7,15 @@ import inspect
 import json
 import logging
 import threading
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, Optional
 
 from google.cloud import pubsub_v1
 
-from ..utils.serialization import deserialize_event
 from .acknowledgement import Acknowledgement
 from .registry import get_registry
 from .resources import ResourceManager
+from ..utils.serialization import deserialize_event
 
 logger = logging.getLogger(__name__)
 

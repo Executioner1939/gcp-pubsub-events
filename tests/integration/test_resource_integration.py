@@ -45,7 +45,7 @@ class TestResourceAutoCreation:
                 self.received_events.append(event)
                 ack.ack()
 
-        listener = AutoCreateListener()
+        AutoCreateListener()
 
         # Create client with auto-creation enabled (default)
         client = create_pubsub_app("test-project", auto_create_resources=True)
@@ -80,7 +80,7 @@ class TestResourceAutoCreation:
             def handle_event(self, event: AutoCreateEvent, ack: Acknowledgement):
                 pass
 
-        listener = NoAutoCreateListener()
+        NoAutoCreateListener()
 
         # Create client with auto-creation disabled
         client = create_pubsub_app("test-project", auto_create_resources=False)
@@ -107,10 +107,10 @@ class TestResourceAutoCreation:
                 self.received_events.append(event)
                 ack.ack()
 
-        listener = AsyncAutoCreateListener()
+        AsyncAutoCreateListener()
 
         # Use async context manager
-        async with async_pubsub_manager("test-project", auto_create_resources=True) as manager:
+        async with async_pubsub_manager("test-project", auto_create_resources=True):
             # Give it time to start and create resources
             import asyncio
 
@@ -146,7 +146,7 @@ class TestResourceAutoCreation:
                 self.received_events.append(("sub2", event))
                 ack.ack()
 
-        listener = MultiAutoCreateListener()
+        MultiAutoCreateListener()
 
         # Create client with auto-creation
         client = create_pubsub_app("test-project", auto_create_resources=True)

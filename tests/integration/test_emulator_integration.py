@@ -7,7 +7,6 @@ import json
 import time
 from datetime import datetime
 
-import pytest
 from pydantic import BaseModel, Field, field_validator
 
 from gcp_pubsub_events import Acknowledgement, pubsub_listener, subscription
@@ -58,11 +57,11 @@ class TestIntegrationWithEmulator:
                 self.listener.processing_times.append(processing_time)
                 ack.ack()
 
-        # Create listener
-        listener_instance = MessageListener(test_listener)
+        # Create listener instance - this registers the handlers via decorators
+        MessageListener(test_listener)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=10)
+        run_client(pubsub_client, timeout=10)
         time.sleep(2)  # Let client start and register handlers
 
         # Publish test message
@@ -110,10 +109,10 @@ class TestIntegrationWithEmulator:
                 ack.ack()
 
         # Create listener
-        listener_instance = MultiMessageListener(test_listener)
+        MultiMessageListener(test_listener)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=15)
+        run_client(pubsub_client, timeout=15)
         time.sleep(2)
 
         # Publish multiple messages
@@ -164,10 +163,10 @@ class TestIntegrationWithEmulator:
                 ack.ack()
 
         # Create listener
-        listener_instance = ValidationListener(test_listener)
+        ValidationListener(test_listener)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=10)
+        run_client(pubsub_client, timeout=10)
         time.sleep(1)
 
         # Publish invalid message (missing required fields)
@@ -209,10 +208,10 @@ class TestIntegrationWithEmulator:
                 ack.ack()
 
         # Create listener
-        listener_instance = AsyncListener(test_listener)
+        AsyncListener(test_listener)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=10)
+        run_client(pubsub_client, timeout=10)
         time.sleep(1)
 
         # Publish message
@@ -262,10 +261,10 @@ class TestIntegrationWithEmulator:
                 ack.ack()
 
         # Create listener
-        listener_instance = ErrorListener(test_listener)
+        listener = ErrorListener(test_listener)
 
         # Start client
-        client_thread = run_client(pubsub_client, timeout=10)
+        run_client(pubsub_client, timeout=10)
         time.sleep(1)
 
         # Publish message that will cause error
@@ -281,4 +280,4 @@ class TestIntegrationWithEmulator:
         # Should not have any successfully processed messages
         assert len(test_listener.received_messages) == 0
         # But handler should have been called
-        assert listener_instance.call_count > 0
+        assert listener.call_count > 0
