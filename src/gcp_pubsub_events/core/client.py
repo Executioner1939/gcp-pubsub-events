@@ -7,6 +7,7 @@ import inspect
 import json
 import logging
 import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Dict, Optional
 
@@ -152,8 +153,6 @@ class PubSubClient:
 
             if timeout:
                 # Run with timeout
-                import time
-
                 start_time = time.time()
                 while self.running and (time.time() - start_time) < timeout:
                     if stop_callback and stop_callback():
@@ -206,8 +205,6 @@ class PubSubClient:
         self.running = False
 
         # Give a moment for any in-flight messages to complete
-        import time
-
         time.sleep(0.5)
 
         # Cancel all streaming pull futures
