@@ -126,6 +126,11 @@ class PubSubManager:
                 if self._stop_event.is_set():
                     logger.info("PubSub listener stopped by stop event")
                     break
+                
+                # If we reach here, the listener exited without stop event
+                # This might be due to no subscriptions or other normal exit
+                logger.info("PubSub listener exited normally")
+                break
 
             except Exception as e:
                 logger.error(f"Error in PubSub listener: {e}", exc_info=True)

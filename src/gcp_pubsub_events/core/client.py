@@ -87,7 +87,9 @@ class PubSubClient:
         """
         with self._start_lock:
             if self.running:
-                logger.warning("Client is already listening")
+                logger.debug("Client is already listening, skipping start")
+                # If already running, just return without error
+                # This allows the manager to call start_listening without issues
                 return
 
             self.running = True
@@ -97,6 +99,7 @@ class PubSubClient:
         subscriptions = registry.get_all_subscriptions()
         if not subscriptions:
             logger.warning("No subscriptions registered, nothing to listen to")
+            self.running = False  # Reset the flag since we're not actually running
             return
 
         # Ensure all resources exist before starting to listen
@@ -121,7 +124,7 @@ class PubSubClient:
                 logger.info(f"Successfully verified {len(subscriptions)} subscription(s) exist")
         except Exception as e:
             logger.error(f"Failed to verify resources: {e}")
-            self.running = False
+            self.running = False  # Reset the flag since we failed to start
             raise
 
         for subscription_name, handlers in subscriptions.items():
@@ -173,10 +176,12 @@ class PubSubClient:
 
         except KeyboardInterrupt:
             logger.info("Shutting down PubSub listener...")
+        except Exception as e:
+            logger.error(f"Unexpected error in listener: {e}", exc_info=True)
         finally:
             # Always stop listening when exiting, whether due to timeout or interruption
-            if self.running:
-                self.stop_listening()
+            # This ensures running flag is reset properly
+            self.stop_listening()
 
     def stop_listening(self, timeout: float = 30.0) -> None:
         """
@@ -194,7 +199,7 @@ class PubSubClient:
             Any exceptions encountered during the cancellation of streaming pull futures.
         """
         if not self.running:
-            logger.warning("PubSub listener is not running")
+            logger.debug("PubSub listener is not running, nothing to stop")
             return
 
         logger.info("Stopping PubSub listener...")
