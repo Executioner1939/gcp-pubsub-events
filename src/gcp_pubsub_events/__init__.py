@@ -9,7 +9,7 @@ from .core.registry import PubSubRegistry
 from .core.resources import ResourceManager, create_resource_manager
 from .decorators import pubsub_listener, subscription
 
-__version__ = "1.3.0"
+__version__ = "2.0.0"
 __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
