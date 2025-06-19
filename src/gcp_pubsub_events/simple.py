@@ -8,7 +8,7 @@ hiding the complexity of managers, clients, and registries.
 import logging
 import signal
 import sys
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from .core.manager import PubSubManager
 from .core.registry import get_registry
@@ -23,9 +23,9 @@ def run_pubsub_app(
     auto_create_resources: bool = True,
     clear_registry: bool = True,
     log_level: str = "INFO",
-    on_startup: Optional[Callable] = None,
-    on_shutdown: Optional[Callable] = None,
-    **kwargs,
+    on_startup: Optional[Callable[[], None]] = None,
+    on_shutdown: Optional[Callable[[], None]] = None,
+    **kwargs: Any,
 ) -> None:
     """
     Run a PubSub application with all registered listeners.
@@ -78,7 +78,7 @@ def run_pubsub_app(
     )
 
     # Setup signal handlers for graceful shutdown
-    def signal_handler(signum, frame):
+    def signal_handler(signum: int, frame: Any) -> None:
         logger.info(f"Received signal {signum}, shutting down...")
         manager.stop()
         if on_shutdown:
@@ -132,9 +132,9 @@ def run_pubsub_app(
 def quick_listen(
     project_id: str,
     subscription_name: str,
-    handler: Callable,
+    handler: Callable[[Any, Any], None],
     event_type: Optional[type] = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> None:
     """
     Quickly listen to a single subscription with a handler function.
@@ -164,7 +164,7 @@ def quick_listen(
     @pubsub_listener
     class QuickListener:
         @subscription(subscription_name, event_type)
-        def handle(self, event, ack):
+        def handle(self, event: Any, ack: Any) -> None:
             handler(event, ack)
 
     # Create instance to register it

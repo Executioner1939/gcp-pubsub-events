@@ -119,7 +119,8 @@ class PubSubManager:
             try:
                 # Start listening with stop callback
                 logger.info(f"Starting PubSub listener (attempt {retry_count + 1}/{max_retries})")
-                self._client.start_listening(stop_callback=lambda: self._stop_event.is_set())
+                if self._client:
+                    self._client.start_listening(stop_callback=lambda: self._stop_event.is_set())
 
                 # If we exit normally (stop event), break the retry loop
                 if self._stop_event.is_set():
@@ -139,7 +140,8 @@ class PubSubManager:
                 if retry_count < max_retries:
                     # Calculate exponential backoff with jitter
                     delay = min(base_delay * (2 ** (retry_count - 1)), max_delay)
-                    jitter = delay * 0.1 * (0.5 - threading.current_thread().ident % 10 / 10)
+                    thread_id = threading.current_thread().ident or 0
+                    jitter = delay * 0.1 * (0.5 - thread_id % 10 / 10)
                     actual_delay = delay + jitter
 
                     logger.warning(
@@ -202,23 +204,23 @@ class PubSubManager:
 
         logger.info("PubSub manager stopped")
 
-    def __enter__(self):
+    def __enter__(self) -> 'PubSubManager':
         """Context manager entry."""
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit."""
         self.stop()
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> 'PubSubManager':
         """Async context manager entry."""
         # Run start in thread pool to avoid blocking
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, self.start)
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Async context manager exit."""
         # Run stop in thread pool to avoid blocking
         loop = asyncio.get_event_loop()
@@ -233,8 +235,8 @@ def pubsub_manager(
     auto_create_resources: bool = True,
     resource_config: Optional[Dict[str, Any]] = None,
     clear_registry_on_start: bool = False,
-    **flow_control_settings,
-):
+    **flow_control_settings: Any,
+) -> Any:
     """
     Context manager for PubSub operations.
 
@@ -268,8 +270,8 @@ async def async_pubsub_manager(
     auto_create_resources: bool = True,
     resource_config: Optional[Dict[str, Any]] = None,
     clear_registry_on_start: bool = False,
-    **flow_control_settings,
-):
+    **flow_control_settings: Any,
+) -> Any:
     """
     Async context manager for PubSub operations.
 

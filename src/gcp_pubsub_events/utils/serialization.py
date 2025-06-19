@@ -3,18 +3,21 @@ Event serialization and deserialization utilities
 """
 
 import logging
-from typing import Any, Type
+from typing import Any, Type, cast
 
 logger = logging.getLogger(__name__)
 
 try:
-    from pydantic import BaseModel, ValidationError
+    from pydantic import BaseModel as PydanticBaseModel
+    from pydantic import ValidationError as PydanticValidationError
 
     PYDANTIC_AVAILABLE = True
+    BaseModel: Type[Any] = PydanticBaseModel
+    ValidationError: Type[Exception] = PydanticValidationError
 except ImportError:
-    BaseModel = None
-    ValidationError = None
     PYDANTIC_AVAILABLE = False
+    BaseModel = type('BaseModel', (), {})
+    ValidationError = Exception
 
 
 def deserialize_event(data: dict, event_type: Type) -> Any:
@@ -48,7 +51,7 @@ def deserialize_event(data: dict, event_type: Type) -> Any:
     """
     try:
         # Try Pydantic first if available and event_type is a Pydantic model
-        if PYDANTIC_AVAILABLE and BaseModel and issubclass(event_type, BaseModel):
+        if PYDANTIC_AVAILABLE and issubclass(event_type, BaseModel):
             return event_type.model_validate(data)
 
         # Try custom from_dict method

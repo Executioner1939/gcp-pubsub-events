@@ -3,6 +3,7 @@ Message acknowledgement handling for Pub/Sub messages
 """
 
 import logging
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +18,11 @@ class Acknowledgement:
     Additionally, it allows checking the acknowledgment status via a property.
     """
 
-    def __init__(self, message):
+    def __init__(self, message: Any) -> None:
         self._message = message
         self._acknowledged = False
 
-    def ack(self):
+    def ack(self) -> None:
         """
         Acknowledges a message if it has not already been acknowledged.
 
@@ -38,7 +39,7 @@ class Acknowledgement:
             self._acknowledged = True
             logger.debug(f"Message acknowledged: {self._message.message_id}")
 
-    def nack(self):
+    def nack(self) -> None:
         """
         Acknowledges the message as not successfully processed.
 

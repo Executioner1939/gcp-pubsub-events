@@ -18,11 +18,11 @@ class PubSubRegistry:
     view all registered subscriptions, and clear all registry data.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.listeners: List[Any] = []
-        self.subscriptions: Dict[str, List[Dict]] = {}
+        self.subscriptions: Dict[str, List[Dict[str, Any]]] = {}
 
-    def register_listener(self, instance: Any):
+    def register_listener(self, instance: Any) -> None:
         """
         Registers a listener to the current instance. The provided instance will be
         added to the list of listeners, and its subscriptions will be scanned to ensure
@@ -44,7 +44,7 @@ class PubSubRegistry:
         self.listeners.append(instance)
         self._scan_subscriptions(instance)
 
-    def _scan_subscriptions(self, instance: Any):
+    def _scan_subscriptions(self, instance: Any) -> None:
         """
         Scans instance methods for subscription configurations and registers them as subscription
         handlers within the application's subscription registry.
@@ -120,7 +120,7 @@ class PubSubRegistry:
         """
         return self.subscriptions.copy()
 
-    def unregister_listener(self, instance: Any):
+    def unregister_listener(self, instance: Any) -> None:
         """
         Unregisters a listener and removes its subscriptions.
 
@@ -145,7 +145,7 @@ class PubSubRegistry:
 
         logger.info(f"Unregistered listener: {instance.__class__.__name__}")
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clears all registered listeners and subscriptions for the current object. This ensures that the registry is emptied
         and ready for reuse without retaining any existing data. Logs an informational message indicating that the registry

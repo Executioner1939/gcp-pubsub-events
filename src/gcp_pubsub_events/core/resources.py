@@ -35,7 +35,7 @@ class ResourceManager:
         self._checked_topics: Set[str] = set()
         self._checked_subscriptions: Set[str] = set()
 
-    def ensure_topic_exists(self, topic_name: str, **topic_config) -> str:
+    def ensure_topic_exists(self, topic_name: str, **topic_config: Any) -> str:
         """
         Ensure a topic exists, creating it if necessary.
 
@@ -53,14 +53,14 @@ class ResourceManager:
 
         # Check cache first
         if topic_name in self._existing_topics:
-            return topic_path
+            return str(topic_path)
 
         # Skip check if we already verified it doesn't exist
         if topic_name not in self._checked_topics:
             if self._topic_exists(topic_path):
                 self._existing_topics.add(topic_name)
                 self._checked_topics.add(topic_name)
-                return topic_path
+                return str(topic_path)
 
             self._checked_topics.add(topic_name)
 
@@ -87,20 +87,20 @@ class ResourceManager:
 
             self._existing_topics.add(topic_name)
             logger.info(f"Successfully created topic: {topic.name}")
-            return topic_path
+            return str(topic_path)
 
         except exceptions.AlreadyExists:
             # Race condition - topic was created by another process
             self._existing_topics.add(topic_name)
             logger.debug(f"Topic already exists: {topic_path}")
-            return topic_path
+            return str(topic_path)
 
         except Exception as e:
             logger.error(f"Failed to create topic '{topic_name}': {e}")
             raise
 
     def ensure_subscription_exists(
-        self, subscription_name: str, topic_name: str, **subscription_config
+        self, subscription_name: str, topic_name: str, **subscription_config: Any
     ) -> str:
         """
         Ensure a subscription exists, creating it if necessary.
@@ -120,14 +120,14 @@ class ResourceManager:
 
         # Check cache first
         if subscription_name in self._existing_subscriptions:
-            return subscription_path
+            return str(subscription_path)
 
         # Skip check if we already verified it doesn't exist
         if subscription_name not in self._checked_subscriptions:
             if self._subscription_exists(subscription_path):
                 self._existing_subscriptions.add(subscription_name)
                 self._checked_subscriptions.add(subscription_name)
-                return subscription_path
+                return str(subscription_path)
 
             self._checked_subscriptions.add(subscription_name)
 
@@ -167,13 +167,13 @@ class ResourceManager:
 
             self._existing_subscriptions.add(subscription_name)
             logger.info(f"Successfully created subscription: {subscription.name}")
-            return subscription_path
+            return str(subscription_path)
 
         except exceptions.AlreadyExists:
             # Race condition - subscription was created by another process
             self._existing_subscriptions.add(subscription_name)
             logger.debug(f"Subscription already exists: {subscription_path}")
-            return subscription_path
+            return str(subscription_path)
 
         except Exception as e:
             logger.error(f"Failed to create subscription '{subscription_name}': {e}")

@@ -2,10 +2,12 @@
 Decorator for marking methods as subscription handlers
 """
 
-from typing import Optional, Type
+from typing import Any, Callable, Optional, Type, TypeVar
+
+F = TypeVar('F', bound=Callable[..., Any])
 
 
-def subscription(subscription_name: str, event_type: Optional[Type] = None):
+def subscription(subscription_name: str, event_type: Optional[Type[Any]] = None) -> Callable[[F], F]:
     """
     Method decorator to mark a method as a subscription handler.
 
@@ -19,8 +21,8 @@ def subscription(subscription_name: str, event_type: Optional[Type] = None):
             pass
     """
 
-    def decorator(func):
-        func._subscription_config = {
+    def decorator(func: F) -> F:
+        func._subscription_config = {  # type: ignore[attr-defined]
             "subscription_name": subscription_name,
             "event_type": event_type,
         }

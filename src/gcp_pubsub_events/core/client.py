@@ -58,7 +58,7 @@ class PubSubClient:
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.max_messages = max_messages
         self.running = False
-        self.streaming_futures = []
+        self.streaming_futures: list[Any] = []
         self._start_lock = threading.Lock()
 
         # Resource management
@@ -66,7 +66,7 @@ class PubSubClient:
         self.resource_config = resource_config or {}
         self.resource_manager = ResourceManager(project_id, auto_create_resources)
 
-    def start_listening(self, timeout: Optional[float] = None, stop_callback=None):
+    def start_listening(self, timeout: Optional[float] = None, stop_callback: Optional[Any] = None) -> None:
         """
         Starts listening to Pub/Sub subscriptions and processes incoming messages.
 
@@ -131,7 +131,7 @@ class PubSubClient:
 
             logger.info(f"Starting to listen on subscription: {subscription_path}")
 
-            def callback(message, handlers=handlers):
+            def callback(message: Any, handlers: Any = handlers) -> None:
                 self._process_message(message, handlers)
 
             # Configure flow control settings
@@ -178,7 +178,7 @@ class PubSubClient:
             if self.running:
                 self.stop_listening()
 
-    def stop_listening(self, timeout: float = 30.0):
+    def stop_listening(self, timeout: float = 30.0) -> None:
         """
         Stops the active PubSub listener and halts all ongoing streaming operations.
 
@@ -223,7 +223,7 @@ class PubSubClient:
         logger.info("PubSub listener stopped successfully")
 
     @staticmethod
-    def _process_message(message, handlers):
+    def _process_message(message: Any, handlers: Any) -> None:
         """
         Processes a received message by delegating it to the appropriate handler based
         on the provided handlers configuration. It ensures that the message is deserialized,
