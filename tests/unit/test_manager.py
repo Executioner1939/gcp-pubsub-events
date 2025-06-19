@@ -186,6 +186,7 @@ class TestPubSubManagerHelpers:
             flow_control_settings={},
             auto_create_resources=True,
             resource_config=None,
+            clear_registry_on_start=False,
         )
 
     @patch("gcp_pubsub_events.core.manager.PubSubManager")
@@ -206,6 +207,7 @@ class TestPubSubManagerHelpers:
             flow_control_settings=flow_settings,
             auto_create_resources=True,
             resource_config=None,
+            clear_registry_on_start=False,
         )
 
     @patch("gcp_pubsub_events.core.manager.PubSubManager")
@@ -236,6 +238,7 @@ class TestPubSubManagerHelpers:
             flow_control_settings={},
             auto_create_resources=True,
             resource_config=None,
+            clear_registry_on_start=False,
         )
 
 
