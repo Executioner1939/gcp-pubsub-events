@@ -13,6 +13,18 @@ from gcp_pubsub_events.core.manager import PubSubManager, async_pubsub_manager, 
 class TestPubSubManager:
     """Test PubSubManager class functionality."""
 
+    def _create_mock_client(self):
+        """Create a mock client that properly simulates blocking behavior."""
+        mock_client = Mock()
+        
+        # Make start_listening block until stop_callback returns True
+        def mock_start_listening(timeout=None, stop_callback=None):
+            while stop_callback and not stop_callback():
+                time.sleep(0.1)
+        
+        mock_client.start_listening.side_effect = mock_start_listening
+        return mock_client
+
     def test_manager_initialization(self):
         """Test manager initializes correctly."""
         manager = PubSubManager("test-project", max_workers=3, max_messages=50)
@@ -27,7 +39,7 @@ class TestPubSubManager:
     def test_manager_start_stop(self, mock_create_app):
         """Test manager start and stop functionality."""
         # Mock the client
-        mock_client = Mock()
+        mock_client = self._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
@@ -58,7 +70,7 @@ class TestPubSubManager:
     @patch("gcp_pubsub_events.core.manager.create_pubsub_app")
     def test_manager_start_already_running(self, mock_create_app):
         """Test starting manager when already running."""
-        mock_client = Mock()
+        mock_client = self._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
@@ -82,7 +94,7 @@ class TestPubSubManager:
     @patch("gcp_pubsub_events.core.manager.create_pubsub_app")
     def test_context_manager_sync(self, mock_create_app):
         """Test sync context manager functionality."""
-        mock_client = Mock()
+        mock_client = self._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
@@ -101,7 +113,7 @@ class TestPubSubManager:
     @patch("gcp_pubsub_events.core.manager.create_pubsub_app")
     def test_context_manager_with_exception(self, mock_create_app):
         """Test context manager cleanup on exception."""
-        mock_client = Mock()
+        mock_client = self._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
@@ -123,7 +135,7 @@ class TestPubSubManager:
     @pytest.mark.asyncio
     async def test_async_context_manager(self, mock_create_app):
         """Test async context manager functionality."""
-        mock_client = Mock()
+        mock_client = self._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
@@ -143,7 +155,7 @@ class TestPubSubManager:
     @pytest.mark.asyncio
     async def test_async_context_manager_with_exception(self, mock_create_app):
         """Test async context manager cleanup on exception."""
-        mock_client = Mock()
+        mock_client = self._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
@@ -246,7 +258,7 @@ class TestPubSubManagerThreading:
     @patch("gcp_pubsub_events.core.manager.create_pubsub_app")
     def test_thread_lifecycle(self, mock_create_app):
         """Test thread creation and cleanup."""
-        mock_client = Mock()
+        mock_client = TestPubSubManager()._create_mock_client()
         mock_create_app.return_value = mock_client
 
         manager = PubSubManager("test-project")
