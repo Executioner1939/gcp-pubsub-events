@@ -6,532 +6,548 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A decorator-based Python library for handling Google Cloud Pub/Sub messages, inspired by Micronaut's `@PubSubListener` pattern. This library provides a clean, type-safe way to build event-driven microservices with automatic resource management and seamless FastAPI integration.
+A modern, decorator-based Python library for Google Cloud Pub/Sub event handling. Inspired by event-driven architectures and frameworks like Micronaut, this library makes it incredibly easy to build scalable, event-driven microservices with minimal boilerplate.
 
-## 🚀 Features
+## 🎯 Why Use This Library?
 
-- **🎯 Decorator-based**: Clean, annotation-style API similar to Micronaut
-- **🔄 Context Manager Support**: Proper lifecycle management with `with` and `async with` syntax
-- **⚡ FastAPI Integration**: Seamless integration with FastAPI using lifespan events
-- **🛠️ Automatic Resource Creation**: Missing topics and subscriptions are created automatically
-- **📝 Automatic Registration**: Classes marked with `@pubsub_listener` are automatically registered
-- **🔒 Type-safe Event Handling**: Support for Pydantic models with automatic validation
-- **⚙️ Async/Sync Support**: Handlers can be async or sync functions
-- **❌ Smart Error Handling**: Automatic ack/nack based on handler success/failure
-- **🧵 Thread Management**: Background thread handling with graceful shutdown
-- **📦 Production Ready**: Comprehensive testing, CI/CD, and monitoring support
+- **Minimal Boilerplate**: Just 3 lines of code to start listening to events
+- **Type Safety**: Full Pydantic model support with automatic validation
+- **Production Ready**: Battle-tested with automatic retries, error handling, and graceful shutdowns
+- **Framework Agnostic**: Works standalone or integrates seamlessly with FastAPI, Flask, Django
+- **Developer Friendly**: Automatic resource creation, comprehensive logging, easy testing
 
-## 📦 Installation
+## 🚀 Quick Start
 
-Install from PyPI:
+### Installation
+
 ```bash
 pip install gcp-pubsub-events
 ```
 
-Or with Poetry:
-```bash
-poetry add gcp-pubsub-events
-```
-
-For development:
-```bash
-git clone https://github.com/Executioner1939/gcp-pubsub-events.git
-cd gcp-pubsub-events
-poetry install --with dev,test
-```
-
-## 🚀 Quick Start
-
-Here's a complete example that shows how to set up event handling in under 10 lines of code:
+### Simplest Example - Just 3 Lines!
 
 ```python
-from gcp_pubsub_events import pubsub_listener, subscription, pubsub_manager, Acknowledgement
-from pydantic import BaseModel
+from gcp_pubsub_events import quick_listen
 
-class UserEvent(BaseModel):
-    user_id: str
-    action: str
+def handle_message(data, ack):
+    print(f"Received: {data}")
+    ack.ack()
+
+quick_listen("my-project", "my-subscription", handle_message)
+```
+
+That's it! The library handles everything else - connection management, error handling, graceful shutdown, and more.
+
+## 📚 Core Concepts
+
+### 1. The Decorator Pattern
+
+This library uses two main decorators:
+
+- `@pubsub_listener`: Marks a class as containing event handlers
+- `@subscription("subscription-name")`: Marks a method as handling messages from a specific subscription
+
+### 2. Message Acknowledgment
+
+Every handler receives an `Acknowledgement` object to control message flow:
+- `ack.ack()`: Message processed successfully, remove from queue
+- `ack.nack()`: Processing failed, retry later
+
+### 3. Automatic Resource Creation
+
+By default, the library creates missing topics and subscriptions automatically. Perfect for development and optional for production.
+
+## 🎓 Examples by Use Case
+
+### Basic Event Handler
+
+```python
+from gcp_pubsub_events import pubsub_listener, subscription, run_pubsub_app
 
 @pubsub_listener
 class EventHandler:
-    @subscription("user-events", UserEvent)
-    def handle_user_event(self, event: UserEvent, ack: Acknowledgement):
-        print(f"User {event.user_id} performed: {event.action}")
-        ack.ack()
-
-# Start listening
-with pubsub_manager("your-project-id"):
-    print("Listening for events...")
-    # Your app runs here
-```
-
-## 🏗️ Project Structure
-
-```
-gcp_pubsub_events/
-├── __init__.py              # Main package exports
-├── core/                    # Core functionality
-│   ├── __init__.py
-│   ├── acknowledgement.py   # Message acknowledgment handling
-│   ├── client.py           # Main PubSub client
-│   └── registry.py         # Listener registry management
-├── decorators/             # Decorator implementations
-│   ├── __init__.py
-│   ├── listener.py         # @pubsub_listener decorator
-│   └── subscription.py     # @subscription decorator
-├── utils/                  # Utility functions
-│   ├── __init__.py
-│   └── serialization.py    # Event serialization utilities
-└── exceptions/             # Custom exceptions
-    ├── __init__.py
-    ├── base.py
-    ├── serialization.py
-    └── subscription.py
-```
-
-## 📋 Table of Contents
-
-- [Installation](#-installation)
-- [Quick Start](#-quick-start)
-- [Detailed Usage](#-detailed-usage)
-- [FastAPI Integration](#-fastapi-integration)
-- [API Reference](#-api-reference)
-- [Advanced Usage](#-advanced-usage)
-- [Testing](#-testing)
-- [Examples](#-examples)
-- [Development](#️-development)
-- [Contributing](#-contributing)
-
-## 📚 Detailed Usage
-
-### 1. Define Event Classes
-
-```python
-from pydantic import BaseModel, Field, field_validator
-
-class RegistrationEvent(BaseModel):
-    email: str = Field(..., description="User's email address")
-    user_id: str = Field(..., description="Unique user identifier")
-    timestamp: datetime = Field(default_factory=datetime.now)
+    @subscription("user-events")
+    def handle_user_event(self, data: dict, ack):
+        """Handle raw dictionary data"""
+        user_id = data.get("user_id")
+        action = data.get("action")
+        
+        print(f"User {user_id} performed {action}")
+        
+        # Process the event
+        if self.process_user_action(user_id, action):
+            ack.ack()  # Success - remove from queue
+        else:
+            ack.nack()  # Failed - retry later
     
-    @field_validator('email')
-    @classmethod
-    def validate_email(cls, v):
-        if '@' not in v:
-            raise ValueError('Invalid email format')
-        return v.lower()
+    def process_user_action(self, user_id: str, action: str) -> bool:
+        # Your business logic here
+        return True
+
+# Create handler and run
+handler = EventHandler()
+run_pubsub_app("my-project-id")
 ```
 
-### 2. Create a Listener Service
+### Type-Safe Events with Pydantic
 
 ```python
+from datetime import datetime
+from pydantic import BaseModel, Field
 from gcp_pubsub_events import pubsub_listener, subscription, Acknowledgement
 
+class UserRegistered(BaseModel):
+    user_id: str = Field(..., description="Unique user identifier")
+    email: str = Field(..., description="User email address")
+    plan: str = Field(default="free", description="Subscription plan")
+    timestamp: datetime = Field(default_factory=datetime.now)
+
 @pubsub_listener
-class UserEventService:
-    def __init__(self, user_service):
-        self.user_service = user_service
+class UserService:
+    def __init__(self, database, email_service):
+        self.db = database
+        self.email = email_service
     
-    @subscription("user.registered", RegistrationEvent)
-    async def on_user_registered(self, event: RegistrationEvent, acknowledgement: Acknowledgement):
+    @subscription("user-registrations", UserRegistered)
+    async def on_user_registered(self, event: UserRegistered, ack: Acknowledgement):
+        """Handle user registration with automatic validation"""
         try:
-            await self.user_service.create_profile(event.email, event.user_id)
-            acknowledgement.ack()
-            print(f"User registered: {event.email}")
-        except Exception as error:
-            acknowledgement.nack()
-            print(f"Error: {error}")
+            # Event is already validated and typed!
+            await self.db.create_user(
+                id=event.user_id,
+                email=event.email,
+                plan=event.plan
+            )
+            
+            await self.email.send_welcome_email(event.email)
+            
+            print(f"✅ User {event.user_id} registered successfully")
+            ack.ack()
+            
+        except Exception as e:
+            print(f"❌ Failed to process registration: {e}")
+            ack.nack()
 ```
 
-### 3. Start Listening
-
-#### Option A: Context Manager (Recommended)
-
-The context manager automatically handles startup and shutdown:
-
-```python
-from gcp_pubsub_events import pubsub_manager
-
-# Initialize your services
-user_service = UserService()
-user_event_service = UserEventService(user_service)
-
-# Use context manager for automatic cleanup
-with pubsub_manager("your-gcp-project-id") as manager:
-    print("PubSub listener started. Press Ctrl+C to stop.")
-    # Your application runs here
-    # Cleanup happens automatically when exiting the context
-```
-
-## ⚡ FastAPI Integration
-
-Perfect for building event-driven microservices:
+### FastAPI Integration
 
 ```python
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from gcp_pubsub_events import async_pubsub_manager
+from gcp_pubsub_events import async_pubsub_manager, pubsub_listener, subscription
 
-# Global variable to store the manager
-pubsub_manager_instance = None
+@pubsub_listener
+class OrderService:
+    def __init__(self):
+        self.orders = []
+    
+    @subscription("order-events")
+    async def handle_order(self, data: dict, ack):
+        self.orders.append(data)
+        print(f"📦 New order: {data['order_id']}")
+        ack.ack()
+
+# Initialize service
+order_service = OrderService()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global pubsub_manager_instance
-    # Startup: Initialize PubSub
-    async with async_pubsub_manager("your-gcp-project-id") as manager:
-        pubsub_manager_instance = manager
+    """Manage PubSub lifecycle with FastAPI"""
+    async with async_pubsub_manager("my-project") as manager:
         yield
-    # Shutdown: Automatic cleanup
-    pubsub_manager_instance = None
 
 app = FastAPI(lifespan=lifespan)
 
-@app.get("/")
-def read_root():
-    return {"status": "running"}
+@app.get("/orders")
+def get_orders():
+    return {"orders": order_service.orders}
 
 @app.get("/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "pubsub_running": pubsub_manager_instance.is_running if pubsub_manager_instance else False
-    }
+    return {"status": "healthy", "service": "order-processor"}
 ```
 
-### Alternative FastAPI Pattern with Dependency Injection
-
-```python
-from fastapi import FastAPI, Depends
-from gcp_pubsub_events import PubSubManager
-
-# Create manager instance
-manager = PubSubManager("your-project-id")
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Start the manager
-    manager.start()
-    yield
-    # Stop the manager
-    manager.stop()
-
-app = FastAPI(lifespan=lifespan)
-
-# Use as dependency
-def get_pubsub_manager() -> PubSubManager:
-    return manager
-
-@app.get("/status")
-def get_status(pubsub: PubSubManager = Depends(get_pubsub_manager)):
-    return {"pubsub_running": pubsub.is_running}
-```
-
-## 🔧 Manual Management
-
-For advanced use cases where you need full control:
-
-```python
-from gcp_pubsub_events import create_pubsub_app
-
-# Initialize your services
-user_service = UserService()
-user_event_service = UserEventService(user_service)
-
-# Manual management (not recommended for production)
-client = create_pubsub_app("your-gcp-project-id")
-try:
-    client.start_listening()
-except KeyboardInterrupt:
-    client.stop_listening()
-```
-
-## 📚 API Reference
-
-### Core Components
-
-#### `@pubsub_listener`
-Class decorator that marks a class as a PubSub listener. Instances are automatically registered.
-
-#### `@subscription(subscription_name, event_type=None)`
-Method decorator that marks a method as a subscription handler.
-
-**Parameters:**
-- `subscription_name`: The GCP Pub/Sub subscription name
-- `event_type`: Optional event class for automatic deserialization
-
-#### `Acknowledgement`
-Handles message acknowledgement.
-
-**Methods:**
-- `ack()`: Acknowledge successful processing
-- `nack()`: Negative acknowledge (mark as failed)
-- `acknowledged` (property): Check if message was acknowledged
-
-#### `PubSubClient`
-Main client for managing subscriptions.
-
-**Methods:**
-- `start_listening(timeout=None)`: Start listening to all registered subscriptions
-- `stop_listening()`: Stop listening
-
-#### `PubSubManager` (Recommended)
-Enhanced manager with context manager support for proper lifecycle management.
-
-**Methods:**
-- `start()`: Start the PubSub listener in a background thread
-- `stop(timeout=10.0)`: Stop listening with optional timeout
-- `is_running` (property): Check if manager is currently running
-
-**Context Manager Support:**
-```python
-# Sync context manager
-with PubSubManager("project-id") as manager:
-    # Your code here
-    pass
-
-# Async context manager  
-async with PubSubManager("project-id") as manager:
-    # Your async code here
-    pass
-```
-
-### Factory Functions
-
-#### `create_pubsub_app(project_id, max_workers=10, max_messages=100, auto_create_resources=True, resource_config=None)`
-Create and configure a PubSub application.
-
-**Parameters:**
-- `auto_create_resources` (bool): Whether to automatically create missing topics/subscriptions
-- `resource_config` (dict): Configuration for resource creation
-
-#### `pubsub_manager(project_id, max_workers=5, max_messages=100, auto_create_resources=True, resource_config=None, **flow_control_settings)`
-Context manager for PubSub operations.
-
-#### `async_pubsub_manager(project_id, max_workers=5, max_messages=100, auto_create_resources=True, resource_config=None, **flow_control_settings)`
-Async context manager for PubSub operations (ideal for FastAPI).
-
-#### `ResourceManager(project_id, auto_create=True)`
-Direct resource management for topics and subscriptions.
-
-**Methods:**
-- `ensure_topic_exists(topic_name, **config)`: Ensure topic exists
-- `ensure_subscription_exists(subscription_name, topic_name, **config)`: Ensure subscription exists
-- `list_topics()`: List all topics in project
-- `list_subscriptions()`: List all subscriptions in project
-
-## 🔥 Performance & Monitoring
-
-### Performance Configuration
-
-```python
-from gcp_pubsub_events import create_pubsub_app
-
-# Configure for high throughput
-client = create_pubsub_app(
-    "your-project-id",
-    max_workers=20,           # More concurrent handlers
-    max_messages=500,         # Larger message batches
-    flow_control_settings={
-        "max_lease_duration": 600,  # 10 minutes max processing
-        "max_extension_period": 300  # 5 minutes extension
-    }
-)
-```
-
-### Health Monitoring
-
-```python
-@app.get("/health/pubsub")
-def pubsub_health():
-    return {
-        "status": "healthy" if pubsub_manager_instance.is_running else "unhealthy",
-        "subscriptions": len(PubSubRegistry.get_subscriptions()),
-        "listeners": len(PubSubRegistry.get_listeners())
-    }
-```
-
-## 🔧 Advanced Usage
-
-### Custom Event Validation
-
-```python
-from pydantic import BaseModel, Field, field_validator
-
-class PaymentEvent(BaseModel):
-    amount: float = Field(..., gt=0)
-    currency: str = Field(..., pattern="^[A-Z]{3}$")
-    user_id: str
-    
-    @field_validator('amount')
-    @classmethod
-    def validate_amount(cls, v):
-        return round(v, 2)  # Round to 2 decimal places
-```
-
-### Error Handling
-
-The library automatically handles acknowledgements based on handler success:
-- If handler completes without exception: `ack()` is called
-- If handler raises exception: `nack()` is called
-- Manual acknowledgement is also supported
-
-### Sync and Async Handlers
+### Multiple Subscription Handlers
 
 ```python
 @pubsub_listener
-class EventService:
-    @subscription("sync.topic")
-    def sync_handler(self, event, acknowledgement):
-        # Synchronous processing
-        pass
-
-    @subscription("async.topic")
-    async def async_handler(self, event, acknowledgement):
-        # Asynchronous processing
-        await some_async_operation()
+class PaymentProcessor:
+    @subscription("payment-requests")
+    async def handle_payment_request(self, data: dict, ack):
+        """Process incoming payment requests"""
+        amount = data.get("amount", 0)
+        
+        if amount <= 0:
+            print(f"❌ Invalid amount: {amount}")
+            ack.ack()  # Don't retry invalid requests
+            return
+            
+        success = await self.process_payment(data)
+        if success:
+            ack.ack()
+        else:
+            ack.nack()
+    
+    @subscription("payment-confirmations")
+    async def handle_confirmation(self, data: dict, ack):
+        """Handle payment confirmations from payment provider"""
+        await self.update_payment_status(data["transaction_id"], "confirmed")
+        await self.notify_customer(data["customer_id"])
+        ack.ack()
+    
+    @subscription("refund-requests")
+    async def handle_refund(self, data: dict, ack):
+        """Process refund requests"""
+        try:
+            await self.process_refund(data["transaction_id"], data["amount"])
+            ack.ack()
+        except RefundError:
+            ack.nack()  # Retry refund later
 ```
 
-## 🔧 Automatic Resource Creation
-
-The library automatically creates missing topics and subscriptions by default, making development and deployment easier.
-
-### Default Behavior (Auto-Creation Enabled)
+### Advanced Validation and Error Handling
 
 ```python
-from gcp_pubsub_events import create_pubsub_app
+from pydantic import BaseModel, validator, root_validator
+from enum import Enum
 
-# Topics and subscriptions are created automatically
-client = create_pubsub_app("my-project")
-client.start_listening()  # Creates resources as needed
+class OrderStatus(str, Enum):
+    PENDING = "pending"
+    CONFIRMED = "confirmed"
+    SHIPPED = "shipped"
+    DELIVERED = "delivered"
+    CANCELLED = "cancelled"
+
+class Order(BaseModel):
+    order_id: str
+    customer_id: str
+    items: list[dict]
+    total_amount: float
+    status: OrderStatus = OrderStatus.PENDING
+    
+    @validator("total_amount")
+    def validate_amount(cls, v):
+        if v <= 0:
+            raise ValueError("Total amount must be positive")
+        return round(v, 2)
+    
+    @validator("items")
+    def validate_items(cls, v):
+        if not v:
+            raise ValueError("Order must contain at least one item")
+        return v
+
+@pubsub_listener
+class OrderProcessor:
+    @subscription("orders", Order)
+    async def process_order(self, order: Order, ack: Acknowledgement):
+        """Process orders with full validation"""
+        try:
+            # Order is automatically validated before reaching here
+            if order.status == OrderStatus.CANCELLED:
+                print(f"⚠️ Skipping cancelled order {order.order_id}")
+                ack.ack()
+                return
+            
+            # Process based on order status
+            if order.status == OrderStatus.PENDING:
+                await self.confirm_inventory(order)
+                await self.charge_customer(order)
+                order.status = OrderStatus.CONFIRMED
+            
+            elif order.status == OrderStatus.CONFIRMED:
+                tracking = await self.ship_order(order)
+                await self.send_tracking_email(order.customer_id, tracking)
+                order.status = OrderStatus.SHIPPED
+            
+            ack.ack()
+            
+        except InventoryError:
+            # Retry later when inventory might be available
+            ack.nack()
+        except PaymentError:
+            # Payment failed - don't retry
+            await self.notify_payment_failure(order.customer_id)
+            ack.ack()
+        except Exception as e:
+            # Unexpected error - log and retry
+            print(f"❌ Unexpected error: {e}")
+            ack.nack()
 ```
 
-### Disable Auto-Creation
+### Context Manager for Lifecycle Management
 
 ```python
-# Disable auto-creation for production environments
-client = create_pubsub_app("my-project", auto_create_resources=False)
+from gcp_pubsub_events import pubsub_manager
+
+# Automatic setup and cleanup
+with pubsub_manager("my-project") as manager:
+    # Your application runs here
+    # PubSub connections are managed automatically
+    run_application()
+    # Graceful shutdown happens automatically
+
+# Or manually control the lifecycle
+manager = PubSubManager("my-project")
+manager.start()
+
+# Your application code
+try:
+    run_application()
+finally:
+    manager.stop()  # Ensures clean shutdown
 ```
 
-### Resource Configuration
+### Development vs Production Settings
 
 ```python
-# Configure resource creation
+# Development - Auto-create resources, verbose logging
+run_pubsub_app(
+    "my-project",
+    auto_create_resources=True,  # Create topics/subscriptions automatically
+    clear_registry=True,          # Clear previous registrations (hot-reload friendly)
+    log_level="DEBUG",            # Verbose logging
+    max_workers=2,                # Less resource usage
+    max_messages=10               # Smaller batches for testing
+)
+
+# Production - Strict mode, optimized settings
+run_pubsub_app(
+    "my-project",
+    auto_create_resources=False,  # Resources must exist
+    clear_registry=False,         # Keep registry between restarts
+    log_level="WARNING",          # Less verbose
+    max_workers=20,               # More parallel processing
+    max_messages=1000,            # Larger batches for throughput
+    clear_registry_on_start=False # Prevent accidental registry clearing
+)
+```
+
+## 🏗️ Architecture
+
+### Project Structure
+
+```
+my-service/
+├── src/
+│   └── my_service/
+│       ├── events/          # Event handlers
+│       │   ├── __init__.py
+│       │   ├── user_events.py
+│       │   └── order_events.py
+│       ├── models/          # Pydantic models
+│       │   ├── __init__.py
+│       │   └── events.py
+│       └── main.py         # Application entry point
+├── tests/
+├── pyproject.toml
+└── README.md
+```
+
+### Component Overview
+
+1. **Decorators**: `@pubsub_listener` and `@subscription` for easy handler registration
+2. **Registry**: Global registry tracks all handlers and subscriptions
+3. **Client**: Manages Pub/Sub connections and message routing
+4. **Manager**: Provides context managers and lifecycle management
+5. **Resources**: Automatic topic and subscription creation/validation
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+# Required
+export GOOGLE_CLOUD_PROJECT="my-project-id"
+
+# Optional
+export PUBSUB_EMULATOR_HOST="localhost:8085"  # For local development
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account.json"
+```
+
+### Programmatic Configuration
+
+```python
+from gcp_pubsub_events import PubSubManager
+
+manager = PubSubManager(
+    project_id="my-project",
+    max_workers=10,              # Thread pool size
+    max_messages=100,            # Max concurrent messages
+    clear_registry_on_start=True # Clear handlers on restart
+)
+
+# Resource creation configuration
 resource_config = {
-    "ack_deadline_seconds": 30,
-    "retain_acked_messages": True,
-    "message_retention_duration": "7d"
+    "ack_deadline_seconds": 600,  # 10 minutes to process
+    "message_retention_duration": "7d",
+    "retry_policy": {
+        "minimum_backoff": "10s",
+        "maximum_backoff": "600s"
+    }
 }
 
-client = create_pubsub_app(
-    "my-project", 
-    auto_create_resources=True,
+manager = PubSubManager(
+    project_id="my-project",
     resource_config=resource_config
 )
 ```
 
-### Manual Resource Management
-
-```python
-from gcp_pubsub_events import ResourceManager
-
-# Direct resource management
-manager = ResourceManager("my-project", auto_create=True)
-
-# Create topic with configuration
-topic_path = manager.ensure_topic_exists("my-topic")
-
-# Create subscription with configuration
-subscription_path = manager.ensure_subscription_exists(
-    "my-subscription",
-    "my-topic",
-    ack_deadline_seconds=60,
-    dead_letter_policy={
-        "dead_letter_topic": "projects/my-project/topics/dead-letters",
-        "max_delivery_attempts": 5
-    }
-)
-
-# List existing resources
-topics = manager.list_topics()
-subscriptions = manager.list_subscriptions()
-```
-
-### Resource Naming Convention
-
-By default, the library uses the subscription name as the topic name. You can override this:
-
-```python
-@pubsub_listener
-class CustomTopicService:
-    @subscription("my-subscription", EventModel)
-    def handle_event(self, event: EventModel, ack: Acknowledgement):
-        # This creates:
-        # - Topic: "my-subscription" 
-        # - Subscription: "my-subscription"
-        pass
-```
-
 ## 🧪 Testing
 
-The library includes comprehensive testing support with the PubSub emulator:
+### Unit Testing Handlers
 
-```bash
-# Install development dependencies
-poetry install --with dev,test
+```python
+import pytest
+from unittest.mock import Mock
+from my_service.events import UserEventHandler
 
-# Start the emulator
-gcloud beta emulators pubsub start --host-port=localhost:8085
-
-# Set environment variable
-export PUBSUB_EMULATOR_HOST=localhost:8085
-
-# Run tests
-poetry run pytest tests/ -v
-
-# Run tests with coverage
-poetry run pytest tests/ --cov=gcp_pubsub_events --cov-report=html
+def test_user_registration_handler():
+    # Create handler instance
+    handler = UserEventHandler()
+    
+    # Create mock acknowledgement
+    ack = Mock()
+    
+    # Test data
+    event_data = {
+        "user_id": "123",
+        "email": "test@example.com"
+    }
+    
+    # Call handler
+    handler.handle_registration(event_data, ack)
+    
+    # Assert acknowledgement
+    ack.ack.assert_called_once()
 ```
 
-### Test Coverage
+### Integration Testing with Emulator
 
-We maintain high test coverage with comprehensive unit, integration, and end-to-end tests:
-- **Unit tests**: Fast, isolated component tests
-- **Integration tests**: Real PubSub emulator integration  
-- **E2E tests**: Complete workflow scenarios
-- **Performance tests**: Throughput and latency benchmarks
+```python
+@pytest.mark.integration
+def test_pubsub_integration():
+    # Set emulator
+    os.environ["PUBSUB_EMULATOR_HOST"] = "localhost:8085"
+    
+    # Create test client
+    with pubsub_manager("test-project") as manager:
+        # Publish test message
+        publisher = PublisherClient()
+        topic_path = publisher.topic_path("test-project", "test-topic")
+        
+        future = publisher.publish(
+            topic_path,
+            b'{"test": "data"}',
+            encoding="utf-8"
+        )
+        future.result()
+        
+        # Wait for processing
+        time.sleep(2)
+        
+        # Assert handler was called
+        assert handler.call_count == 1
+```
 
-Coverage reports are automatically generated and uploaded to [Codecov](https://codecov.io/gh/Executioner1939/gcp-pubsub-events).
+## 📊 Performance Considerations
 
-## 💡 Best Practices
+### Throughput Optimization
 
-### 1. Error Handling
+```python
+# High-throughput configuration
+run_pubsub_app(
+    "my-project",
+    max_workers=50,        # More parallel workers
+    max_messages=1000,     # Larger batches
+    flow_control_settings={
+        "max_messages": 1000,
+        "max_bytes": 1e9,  # 1GB
+        "max_lease_duration": "3600s"
+    }
+)
+```
+
+### Memory Management
+
 ```python
 @pubsub_listener
-class RobustEventHandler:
-    @subscription("critical-events", CriticalEvent)
-    async def handle_critical_event(self, event: CriticalEvent, ack: Acknowledgement):
-        try:
-            await self.process_event(event)
-            ack.ack()
-        except RetryableError as e:
-            # Let PubSub retry by not acknowledging
-            logger.warning(f"Retryable error: {e}")
-            ack.nack()  
-        except FatalError as e:
-            # Acknowledge to prevent infinite retries
-            logger.error(f"Fatal error: {e}")
-            await self.send_to_dead_letter_queue(event)
-            ack.ack()
+class LargeFileProcessor:
+    @subscription("large-files")
+    async def process_file(self, data: dict, ack):
+        file_url = data["file_url"]
+        
+        # Stream file instead of loading into memory
+        async with aiohttp.ClientSession() as session:
+            async with session.get(file_url) as response:
+                async for chunk in response.content.iter_chunked(8192):
+                    await self.process_chunk(chunk)
+        
+        ack.ack()
 ```
 
-### 2. Resource Configuration
+## 🐛 Troubleshooting
+
+### Common Issues and Solutions
+
+#### "Client is already listening" Warning
+This typically occurs during development with hot-reload:
+
 ```python
-# Production-ready configuration
+# Solution 1: Use clear_registry
+run_pubsub_app("my-project", clear_registry=True)
+
+# Solution 2: For FastAPI/Flask development
+async with async_pubsub_manager(
+    "my-project",
+    clear_registry_on_start=True
+) as manager:
+    # Your app
+    pass
+```
+
+#### "No subscriptions registered" Error
+Ensure you've created instances of your listener classes:
+
+```python
+# ❌ Wrong - Class not instantiated
+@pubsub_listener
+class MyHandler:
+    @subscription("my-sub")
+    def handle(self, data, ack):
+        pass
+
+# ✅ Correct - Create instance
+handler = MyHandler()  # This registers the handlers
+run_pubsub_app("my-project")
+```
+
+#### Memory Leaks
+Monitor and limit concurrent message processing:
+
+```python
+# Prevent memory overload
+manager = PubSubManager(
+    "my-project",
+    max_messages=50,      # Limit concurrent messages
+    max_workers=5,        # Limit threads
+    flow_control_settings={
+        "max_bytes": 100_000_000  # 100MB max
+    }
+)
+```
+
+## 🛡️ Security Best Practices
+
+1. **Use Service Accounts**: Never use user credentials in production
+2. **Minimum Permissions**: Grant only `roles/pubsub.subscriber` for consumers
+3. **Message Validation**: Always validate incoming messages
+4. **Encryption**: Enable message encryption for sensitive data
+5. **Dead Letter Queues**: Configure DLQs for failed messages
+
+```python
+# Configure dead letter queue
 resource_config = {
-    "ack_deadline_seconds": 60,
-    "retain_acked_messages": False,
-    "message_retention_duration": "7d",
     "dead_letter_policy": {
         "dead_letter_topic": "projects/my-project/topics/dead-letters",
         "max_delivery_attempts": 5
@@ -539,111 +555,36 @@ resource_config = {
 }
 ```
 
-### 3. Testing Strategy
-```python
-# Use emulator for integration tests
-@pytest.fixture
-def pubsub_emulator():
-    # Start emulator, yield, cleanup
-    pass
-
-def test_event_handling(pubsub_emulator):
-    # Test your handlers with real PubSub
-    pass
-```
-
-## 📖 Examples
-
-Check out the complete examples in the repository:
-- **Basic Example**: `examples/basic_example.py` - Simple usage with Pydantic models
-- **FastAPI Example**: `examples/fastapi_example.py` - Complete FastAPI integration
-- **Advanced Example**: `examples/advanced_example.py` - Complex validation and multiple event types
-- **Performance Example**: `examples/performance_example.py` - High-throughput configuration
-
-## 🛠️ Development
-
-### Setup Development Environment
-
-```bash
-git clone <repository-url>
-cd gcp-pubsub-events
-poetry install --with dev,test
-```
-
-### Running Tests
-
-```bash
-# Run tests with Poetry
-poetry run pytest
-
-# Run tests with coverage
-poetry run pytest --cov=gcp_pubsub_events --cov-report=html
-```
-
-## 📋 Requirements
-
-- Python 3.11+
-- google-cloud-pubsub>=2.0.0
-- pydantic>=2.0.0
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### "Subscription does not exist" Error
-```python
-# Enable auto-creation (default)
-client = create_pubsub_app("project-id", auto_create_resources=True)
-
-# Or create resources manually
-from gcp_pubsub_events import ResourceManager
-manager = ResourceManager("project-id")
-manager.ensure_subscription_exists("my-sub", "my-topic")
-```
-
-#### Permission Errors
-Ensure your service account has these IAM roles:
-- `roles/pubsub.admin` (for auto-creation)
-- `roles/pubsub.subscriber` (minimum for listening)
-
-#### Memory Issues with High Throughput
-```python
-# Configure flow control
-client = create_pubsub_app(
-    "project-id",
-    flow_control_settings={
-        "max_messages": 100,  # Reduce batch size
-        "max_bytes": 1024 * 1024  # 1MB limit
-    }
-)
-```
-
 ## 🤝 Contributing
 
-We welcome contributions! Here's how to get started:
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-1. **Fork the repository** on GitHub
-2. **Clone your fork** locally
-3. **Create a feature branch**: `git checkout -b feature/amazing-feature`
-4. **Make your changes** and add tests
-5. **Run the test suite**: `poetry run pytest`
-6. **Run linting**: `poetry run black . && poetry run flake8`
-7. **Commit your changes**: `git commit -m "Add amazing feature"`
-8. **Push to your fork**: `git push origin feature/amazing-feature`
-9. **Submit a pull request**
-
-### Development Guidelines
-- Add tests for new features
-- Update documentation as needed
-- Follow existing code style
-- Ensure all CI checks pass
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
+## 🔗 Resources
 
 - [Google Cloud Pub/Sub Documentation](https://cloud.google.com/pubsub/docs)
-- [Pydantic Documentation](https://docs.pydantic.dev/)
-- [Micronaut PubSub Documentation](https://micronaut-projects.github.io/micronaut-gcp/latest/guide/index.html#pubsub)
+- [Library API Reference](https://gcp-pubsub-events.readthedocs.io)
+- [Example Projects](https://github.com/Executioner1939/gcp-pubsub-events/tree/main/examples)
+- [Issue Tracker](https://github.com/Executioner1939/gcp-pubsub-events/issues)
+
+## 💡 Credits
+
+Inspired by:
+- [Micronaut's @PubSubListener](https://micronaut-projects.github.io/micronaut-gcp/latest/guide/)
+- [Spring Cloud GCP](https://spring.io/projects/spring-cloud-gcp)
+- Modern Python async patterns
+
+---
+
+<p align="center">
+  Made with ❤️ by developers, for developers
+</p>

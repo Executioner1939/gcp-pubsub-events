@@ -8,6 +8,6 @@ from .subscription import SubscriptionError
 
 __all__ = [
     "PubSubEventsError",
-    "SerializationError", 
+    "SerializationError",
     "SubscriptionError",
 ]

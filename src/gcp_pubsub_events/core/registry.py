@@ -17,11 +17,11 @@ class PubSubRegistry:
     listeners, scan for subscription handlers, retrieve handlers for specific subscriptions,
     view all registered subscriptions, and clear all registry data.
     """
-    
+
     def __init__(self):
         self.listeners: List[Any] = []
         self.subscriptions: Dict[str, List[Dict]] = {}
-    
+
     def register_listener(self, instance: Any):
         """
         Registers a listener to the current instance. The provided instance will be
@@ -34,9 +34,16 @@ class PubSubRegistry:
                 The instance to be registered as a listener.
 
         """
+        # Check if instance is already registered to avoid duplicates
+        if instance in self.listeners:
+            logger.warning(
+                f"Listener {instance.__class__.__name__} is already registered, skipping"
+            )
+            return
+
         self.listeners.append(instance)
         self._scan_subscriptions(instance)
-    
+
     def _scan_subscriptions(self, instance: Any):
         """
         Scans instance methods for subscription configurations and registers them as subscription
@@ -59,21 +66,25 @@ class PubSubRegistry:
         """
         for method_name in dir(instance):
             method = getattr(instance, method_name)
-            if hasattr(method, '_subscription_config'):
+            if hasattr(method, "_subscription_config"):
                 config = method._subscription_config
-                subscription_name = config['subscription_name']
-                
+                subscription_name = config["subscription_name"]
+
                 if subscription_name not in self.subscriptions:
                     self.subscriptions[subscription_name] = []
-                
-                self.subscriptions[subscription_name].append({
-                    'handler': method,
-                    'instance': instance,
-                    'event_type': config.get('event_type')
-                })
-                
-                logger.info(f"Registered subscription handler: {subscription_name} -> {instance.__class__.__name__}.{method_name}")
-    
+
+                self.subscriptions[subscription_name].append(
+                    {
+                        "handler": method,
+                        "instance": instance,
+                        "event_type": config.get("event_type"),
+                    }
+                )
+
+                logger.info(
+                    f"Registered subscription handler: {subscription_name} -> {instance.__class__.__name__}.{method_name}"
+                )
+
     def get_handlers(self, subscription_name: str) -> List[Dict]:
         """
         Retrieve a list of handlers for a given subscription.
@@ -92,7 +103,7 @@ class PubSubRegistry:
             an empty list is returned.
         """
         return self.subscriptions.get(subscription_name, [])
-    
+
     def get_all_subscriptions(self) -> Dict[str, List[Dict]]:
         """
         Returns a copy of all subscriptions.
@@ -108,7 +119,32 @@ class PubSubRegistry:
             details represented as dictionaries.
         """
         return self.subscriptions.copy()
-    
+
+    def unregister_listener(self, instance: Any):
+        """
+        Unregisters a listener and removes its subscriptions.
+
+        Args:
+            instance: The listener instance to unregister
+        """
+        if instance not in self.listeners:
+            logger.warning(f"Listener {instance.__class__.__name__} is not registered")
+            return
+
+        # Remove the listener
+        self.listeners.remove(instance)
+
+        # Remove subscriptions associated with this listener
+        for subscription_name, handlers in list(self.subscriptions.items()):
+            self.subscriptions[subscription_name] = [
+                h for h in handlers if h["instance"] != instance
+            ]
+            # Remove empty subscription entries
+            if not self.subscriptions[subscription_name]:
+                del self.subscriptions[subscription_name]
+
+        logger.info(f"Unregistered listener: {instance.__class__.__name__}")
+
     def clear(self):
         """
         Clears all registered listeners and subscriptions for the current object. This ensures that the registry is emptied

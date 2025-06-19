@@ -16,11 +16,11 @@ class Acknowledgement:
     It provides methods to explicitly acknowledge (ack) or negatively acknowledge (nack) a message.
     Additionally, it allows checking the acknowledgment status via a property.
     """
-    
+
     def __init__(self, message):
         self._message = message
         self._acknowledged = False
-    
+
     def ack(self):
         """
         Acknowledges a message if it has not already been acknowledged.
@@ -37,7 +37,7 @@ class Acknowledgement:
             self._message.ack()
             self._acknowledged = True
             logger.debug(f"Message acknowledged: {self._message.message_id}")
-    
+
     def nack(self):
         """
         Acknowledges the message as not successfully processed.
@@ -54,7 +54,7 @@ class Acknowledgement:
             self._message.nack()
             self._acknowledged = True
             logger.debug(f"Message nacked: {self._message.message_id}")
-    
+
     @property
     def acknowledged(self) -> bool:
         """

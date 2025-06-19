@@ -1,0 +1,28 @@
+# Include package data
+include README.md
+include LICENSE
+include pyproject.toml
+include setup.cfg
+
+# Include source code
+recursive-include src *.py
+recursive-include src *.pyi
+recursive-include src py.typed
+
+# Include tests for sdist
+recursive-include tests *.py
+recursive-include tests *.yml
+recursive-include tests *.yaml
+
+# Include examples
+recursive-include examples *.py
+recursive-include examples *.md
+
+# Exclude unnecessary files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
+global-exclude .DS_Store
+global-exclude .git*
+global-exclude *.swp
+global-exclude *~

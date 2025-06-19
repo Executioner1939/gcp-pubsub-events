@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 try:
     from pydantic import BaseModel, ValidationError
+
     PYDANTIC_AVAILABLE = True
 except ImportError:
     BaseModel = None
@@ -49,15 +50,15 @@ def deserialize_event(data: dict, event_type: Type) -> Any:
         # Try Pydantic first if available and event_type is a Pydantic model
         if PYDANTIC_AVAILABLE and BaseModel and issubclass(event_type, BaseModel):
             return event_type.model_validate(data)
-        
+
         # Try custom from_dict method
-        elif hasattr(event_type, 'from_dict'):
+        elif hasattr(event_type, "from_dict"):
             return event_type.from_dict(data)
-        
+
         # Try dataclass or simple class instantiation
         else:
             return event_type(**data)
-            
+
     except ValidationError as e:
         logger.error(f"Pydantic validation error for {event_type.__name__}: {e}")
         raise

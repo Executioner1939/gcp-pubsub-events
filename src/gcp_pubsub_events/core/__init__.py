@@ -8,7 +8,7 @@ from .registry import PubSubRegistry
 
 __all__ = [
     "Acknowledgement",
-    "PubSubClient", 
+    "PubSubClient",
     "create_pubsub_app",
     "PubSubRegistry",
 ]
